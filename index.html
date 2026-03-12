@@ -1,0 +1,321 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sector Breadth — Steenbarger</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Archivo+Black&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0c0f;
+  --card:#111318;
+  --border:#1e2028;
+  --dim:#3a3f50;
+  --mid:#6b7280;
+  --text:#d4d8e2;
+  --bright:#f0f2f8;
+  --green:#16a34a;
+  --yellow:#ca8a04;
+  --orange:#ea580c;
+  --red:#dc2626;
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;padding:36px 28px}
+.wrap{max-width:1000px;margin:0 auto}
+
+/* Top bar */
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:36px;flex-wrap:wrap;gap:12px}
+.title-block h1{font-family:'Archivo Black',sans-serif;font-size:22px;letter-spacing:1px;color:var(--bright);font-weight:900}
+.title-block .sub{font-size:10px;color:var(--dim);letter-spacing:2px;margin-top:3px}
+.btn{background:var(--bright);color:#0b0c0f;border:none;border-radius:5px;font-family:inherit;font-size:11px;font-weight:500;letter-spacing:1.5px;padding:10px 22px;cursor:pointer;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* Chips */
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:28px;min-height:20px}
+.chip{font-size:9px;letter-spacing:1px;padding:3px 9px;border-radius:3px;border:1px solid var(--border);color:var(--dim)}
+.chip.ok{border-color:#16a34a44;color:#4ade80;background:#16a34a10}
+.chip.spin{border-color:#3b82f644;color:#60a5fa;background:#3b82f610;animation:blink 1s infinite}
+.chip.err{border-color:#dc262644;color:#f87171;background:#dc262610}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Loading */
+.loading{text-align:center;padding:48px;color:var(--dim);font-size:11px;display:none}
+.ring{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--bright);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Alert banner */
+.alert{border-radius:6px;padding:14px 20px;margin-bottom:24px;border-left:4px solid;display:none;animation:slideIn .3s ease}
+@keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+.alert-label{font-size:10px;letter-spacing:2px;font-weight:500;margin-bottom:4px}
+.alert-text{font-size:11px;line-height:1.7;color:var(--text)}
+
+/* Main table */
+.table-wrap{display:none}
+.tbl{width:100%;border-collapse:collapse}
+.tbl thead th{font-size:9px;letter-spacing:2px;color:var(--dim);text-align:left;padding:8px 14px;border-bottom:1px solid var(--border);font-weight:400}
+.tbl tbody tr{transition:background .1s}
+.tbl tbody tr:hover{background:var(--card)}
+.tbl td{padding:13px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+
+.ma-label{font-family:'Archivo Black',sans-serif;font-size:14px;color:var(--bright);letter-spacing:1px}
+.sigma{font-family:'Archivo Black',sans-serif;font-size:26px;line-height:1}
+.sigma-bar{margin-top:5px;height:3px;background:var(--border);border-radius:2px;width:120px}
+.sigma-fill{height:100%;border-radius:2px;transition:width .7s ease}
+.badge{display:inline-block;font-size:9px;letter-spacing:1px;padding:4px 10px;border-radius:3px;font-weight:500;white-space:nowrap}
+.sectors-row{display:flex;flex-wrap:wrap;gap:3px;max-width:360px}
+.sec{font-size:9px;padding:2px 6px;border-radius:2px;letter-spacing:0.5px;white-space:nowrap}
+
+/* Date line */
+.dateline{font-size:10px;color:var(--dim);letter-spacing:1px;margin-bottom:20px}
+
+/* Error */
+.errmsg{background:#1a0a0a;border:1px solid #dc262630;border-radius:6px;padding:16px 20px;font-size:11px;line-height:1.8;color:#f87171;display:none;margin-bottom:20px}
+
+/* Upload fallback */
+.upload{border:1px dashed var(--border);border-radius:6px;padding:20px;text-align:center;margin-bottom:20px;cursor:pointer;transition:border-color .2s;position:relative;display:none}
+.upload:hover{border-color:var(--mid)}
+.upload input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload p{font-size:10px;color:var(--mid);letter-spacing:1px}
+
+/* History */
+.hist{display:none;margin-top:32px}
+.hist-label{font-size:9px;letter-spacing:2px;color:var(--dim);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.htbl{width:100%;border-collapse:collapse;font-size:10px}
+.htbl th{color:var(--dim);text-align:left;padding:5px 10px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:1px;font-weight:400}
+.htbl td{padding:7px 10px;border-bottom:1px solid var(--border)}
+.htbl tr:hover td{background:var(--card)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <div class="title-block">
+    <h1>SECTOR BREADTH DIVERGENCE</h1>
+    <div class="sub">STD DEV OF % STOCKS ABOVE MA · 11 SECTORS · 7 TIMEFRAMES</div>
+  </div>
+  <button class="btn" id="loadBtn" onclick="loadAll()">LOAD DATA</button>
+</div>
+
+<div class="chips" id="chips"></div>
+<div class="loading" id="loading"><span class="ring"></span>Fetching from MarketCharts...</div>
+<div class="errmsg" id="errmsg"></div>
+<div class="upload" id="upload">
+  <input type="file" id="fileIn" multiple accept=".csv">
+  <p>DROP CSV FILES HERE AS FALLBACK</p>
+</div>
+
+<div class="alert" id="alert">
+  <div class="alert-label" id="alertLabel"></div>
+  <div class="alert-text" id="alertText"></div>
+</div>
+
+<div class="dateline" id="dateline"></div>
+
+<div class="table-wrap" id="tableWrap">
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th style="width:80px">MA</th>
+        <th style="width:160px">STD DEV σ</th>
+        <th style="width:160px">SIGNAL</th>
+        <th>SECTORS (HIGH → LOW)</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<div class="hist" id="hist">
+  <div class="hist-label">HISTORY · 20D MA SIGNAL</div>
+  <table class="htbl">
+    <thead><tr><th>DATE</th><th>σ</th><th>SIGNAL</th></tr></thead>
+    <tbody id="hbody"></tbody>
+  </table>
+</div>
+
+</div>
+<script>
+const SOURCES=[
+  {t:'XLK', u:'https://marketcharts.com/data/eac1f95bx3f5d0f331de2676d?csv'},
+  {t:'XLV', u:'https://marketcharts.com/data/eac1f95bx407f83b8218832e2?csv'},
+  {t:'XLF', u:'https://marketcharts.com/data/eac1f95bx4441b1eba6fb25ac?csv'},
+  {t:'XLI', u:'https://marketcharts.com/data/eac1f95bx190a9d72bafd6ce7?csv'},
+  {t:'XLP', u:'https://marketcharts.com/data/eac1f95bxddc8dbb3c6453991?csv'},
+  {t:'XLU', u:'https://marketcharts.com/data/eac1f95bxdbe99ca30fcf2982?csv'},
+  {t:'XLY', u:'https://marketcharts.com/data/eac1f95bxfac6a66661b831eb?csv'},
+  {t:'XLE', u:'https://marketcharts.com/data/eac1f95bx648b5b0370eef5e0?csv'},
+  {t:'XLB', u:'https://marketcharts.com/data/eac1f95bxa9cac8f73c01eb22?csv'},
+  {t:'XLRE',u:'https://marketcharts.com/data/eac1f95bxa160ab69be24d4bc?csv'},
+  {t:'XLC', u:'https://marketcharts.com/data/eac1f95bxca50dab1dc4ec23c?csv'},
+];
+const MAS=[3,5,10,20,50,100,200];
+const NAMES={XLK:'Tech',XLV:'Health',XLF:'Fin',XLI:'Ind',XLP:'Stap',XLU:'Util',XLY:'Disc',XLE:'Engy',XLB:'Matl',XLRE:'RE',XLC:'Comm'};
+let data={};
+let hist=[];
+try{hist=JSON.parse(localStorage.getItem('sbh4')||'[]');}catch(e){}
+
+function regime(sd){
+  // sd is on 0-100 scale; Dr S uses 0-1 scale so divide by 100
+  const s=sd/100;
+  if(s>=0.20)return{label:'DANGER  ·  σ ≥ 0.20',short:'DANGER',color:'var(--red)',bg:'#1a0505',left:'var(--red)',text:'Sectors sharply diverging. Standard deviation is at or above the critical 0.20 level. The bull market is coming apart beneath the surface — time to shift your playbook.'};
+  if(s>=0.15)return{label:'WARNING  ·  σ ≥ 0.15',short:'WARNING',color:'var(--orange)',bg:'#1a0d05',left:'var(--orange)',text:'Elevated divergence. Hidden weakness building beneath the surface. Be cautious before adding risk.'};
+  if(s>=0.10)return{label:'CAUTION  ·  σ ≥ 0.10',short:'CAUTION',color:'var(--yellow)',bg:'#1a1505',left:'var(--yellow)',text:'Moderate divergence across sectors. Rotation underway. Be selective.'};
+  return{label:'CALM  ·  σ < 0.10',short:'CALM',color:'var(--green)',bg:'#051a0a',left:'var(--green)',text:'Sectors moving together. Broad participation. Healthy environment.'};
+}
+
+function parseCSV(txt,ticker){
+  const lines=txt.trim().split('\n');
+  if(lines.length<2)return null;
+  const hdrs=lines[0].split(',').map(h=>h.trim());
+  const cols={};
+  MAS.forEach(ma=>{const k=`${ticker}.PCTASMA${ma}`;const i=hdrs.findIndex(h=>h===k||h.startsWith(k));if(i!==-1)cols[ma]=i;});
+  if(!Object.keys(cols).length)return null;
+  const di=hdrs.indexOf('DATE');
+  let row=null,dt='';
+  lines.slice(1).forEach(l=>{const r=l.split(',');if(r[di]&&r[di].trim()>dt){dt=r[di].trim();row=r;}});
+  if(!row)return null;
+  const vals={};
+  MAS.forEach(ma=>{if(cols[ma]!==undefined){const v=parseFloat(row[cols[ma]]);if(!isNaN(v))vals[ma]=v;}});
+  return{t:ticker,date:dt,vals};
+}
+
+function render(){
+  const tickers=Object.keys(data);
+  if(!tickers.length)return;
+  const date=Object.values(data).map(d=>d.date).sort().reverse()[0]||'';
+  document.getElementById('dateline').textContent='DATA AS OF  '+date+'  ·  '+tickers.length+'/11 SECTORS';
+
+  const tbody=document.getElementById('tbody');
+  tbody.innerHTML='';
+  let worstSd=0,worstR=null;
+
+  MAS.forEach(ma=>{
+    const pts=tickers.map(t=>({t,v:data[t].vals[ma]})).filter(x=>x.v!==undefined);
+    if(pts.length<2)return;
+    const nums=pts.map(x=>x.v);
+    const mean=nums.reduce((a,b)=>a+b,0)/nums.length;
+    const sd100=Math.sqrt(nums.reduce((s,v)=>s+Math.pow(v-mean,2),0)/nums.length);
+    const sd=sd100/100;
+    const r=regime(sd100);
+    if(sd100>worstSd){worstSd=sd100;worstR=r;}
+
+    const barPct=Math.min(sd/0.25*100,100);
+    const sorted=[...pts].sort((a,b)=>b.v-a.v);
+    const secHtml=sorted.map(({t,v})=>{
+      const c=v>=60?'var(--green)':v>=40?'var(--yellow)':'var(--red)';
+      const bg=v>=60?'#051a0a':v>=40?'#1a1505':'#1a0505';
+      return `<span class="sec" style="background:${bg};color:${c}">${t} ${v.toFixed(0)}</span>`;
+    }).join('');
+
+    tbody.innerHTML+=`
+    <tr>
+      <td><span class="ma-label">${ma}D</span></td>
+      <td>
+        <span class="sigma" style="color:${r.color}">${sd.toFixed(3)}</span>
+        <div class="sigma-bar"><div class="sigma-fill" style="width:${barPct}%;background:${r.color}"></div></div>
+      </td>
+      <td><span class="badge" style="background:${r.bg};color:${r.color};border:1px solid ${r.color}44">${r.short}</span></td>
+      <td><div class="sectors-row">${secHtml}</div></td>
+    </tr>`;
+
+    if(ma===20){
+      hist.unshift({date,sd:sd.toFixed(3),label:r.short});
+      if(hist.length>30)hist=hist.slice(0,30);
+      try{localStorage.setItem('sbh4',JSON.stringify(hist));}catch(e){}
+    }
+  });
+
+  document.getElementById('tableWrap').style.display='block';
+
+  // Alert banner — show only if caution or worse
+  if(worstR&&worstSd/100>=0.10){
+    const al=document.getElementById('alert');
+    al.style.display='block';al.style.background=worstR.bg;al.style.borderLeftColor=worstR.left;
+    document.getElementById('alertLabel').style.color=worstR.color;
+    document.getElementById('alertLabel').textContent=worstR.label;
+    document.getElementById('alertText').textContent=worstR.text;
+  } else {
+    document.getElementById('alert').style.display='none';
+  }
+
+  renderHist();
+}
+
+async function loadAll(){
+  const btn=document.getElementById('loadBtn');
+  btn.disabled=true;btn.textContent='LOADING...';
+  document.getElementById('loading').style.display='block';
+  document.getElementById('errmsg').style.display='none';
+  document.getElementById('tableWrap').style.display='none';
+  document.getElementById('alert').style.display='none';
+  data={};
+
+  const chips=document.getElementById('chips');
+  chips.innerHTML='';
+  SOURCES.forEach(s=>chips.innerHTML+=`<div class="chip spin" id="c_${s.t}">${s.t}</div>`);
+
+  await Promise.all(SOURCES.map(async s=>{
+    try{
+      const r=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(s.u),{signal:AbortSignal.timeout(12000)});
+      if(!r.ok)throw 0;
+      const txt=await r.text();
+      const res=parseCSV(txt,s.t);
+      if(res&&Object.keys(res.vals).length){data[s.t]=res;document.getElementById('c_'+s.t).className='chip ok';document.getElementById('c_'+s.t).textContent='✓ '+s.t;}
+      else throw 0;
+    }catch{
+      document.getElementById('c_'+s.t).className='chip err';
+      document.getElementById('c_'+s.t).textContent='✗ '+s.t;
+    }
+  }));
+
+  document.getElementById('loading').style.display='none';
+  btn.disabled=false;btn.textContent='REFRESH';
+
+  if(!Object.keys(data).length){
+    document.getElementById('errmsg').style.display='block';
+    document.getElementById('errmsg').textContent='Live fetch blocked by browser. Drop your 11 CSV files below instead.';
+    document.getElementById('upload').style.display='block';
+    return;
+  }
+  render();
+}
+
+function handleFiles(files){
+  let n=files.length;
+  Array.from(files).forEach(f=>{
+    const rd=new FileReader();
+    rd.onload=e=>{
+      let t=null;
+      const fn=f.name.toUpperCase();
+      for(const k of Object.keys(NAMES)){if(fn.includes(k)){t=k;break;}}
+      if(!t){const m=fn.match(/(XLK|XLV|XLF|XLI|XLP|XLU|XLY|XLE|XLB|XLRE|XLC)/);if(m)t=m[1];}
+      if(t){const r=parseCSV(e.target.result,t);if(r)data[t]=r;}
+      if(!--n)render();
+    };
+    rd.readAsText(f);
+  });
+}
+
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',e=>{e.preventDefault();if(e.dataTransfer.files.length)handleFiles(e.dataTransfer.files);});
+document.getElementById('fileIn').addEventListener('change',e=>handleFiles(e.target.files));
+
+function renderHist(){
+  if(!hist.length)return;
+  document.getElementById('hist').style.display='block';
+  const b=document.getElementById('hbody');b.innerHTML='';
+  hist.forEach(h=>{
+    const s=parseFloat(h.sd);
+    const c=s>=0.20?'var(--red)':s>=0.15?'var(--orange)':s>=0.10?'var(--yellow)':'var(--green)';
+    b.innerHTML+=`<tr><td style="color:var(--dim)">${h.date}</td><td style="color:${c};font-weight:500">${h.sd}</td><td style="color:${c};font-size:9px;letter-spacing:1px">${h.label}</td></tr>`;
+  });
+}
+
+renderHist();
+loadAll();
+</script>
+</body>
+</html>
