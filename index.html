@@ -255,11 +255,21 @@ function parseCSV(text, ticker) {
   return result;
 }
 
-// Fetch one CSV via allorigins proxy
+// Fetch one CSV — try multiple proxies
 async function fetchCSV(ticker, url) {
-  const proxy = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
-  const res = await fetch(proxy);
-  if(!res.ok) throw new Error(`${ticker} fetch failed`);
+  const proxies = [
+    `https://proxy.corsfix.com/?${url}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+  ];
+  let res = null;
+  for(const proxy of proxies) {
+    try {
+      res = await fetch(proxy);
+      if(res && res.ok) break;
+    } catch(e) { res = null; }
+  }
+  if(!res || !res.ok) throw new Error(`${ticker} fetch failed`);
   const text = await res.text();
   return parseCSV(text, ticker);
 }
