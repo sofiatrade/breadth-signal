@@ -81,7 +81,7 @@ body { background: #060810; color: #ffffff; font-family: 'Courier New', monospac
     </div>
 
     <div class="card">
-      <div class="card-title">ALL TIMEFRAMES — CLICK TO SELECT</div>
+      <div class="card-title">STD DEVIATION ALL TIMEFRAMES</div>
       <div id="maList"></div>
 
       <div class="divider"></div>
@@ -93,10 +93,12 @@ body { background: #060810; color: #ffffff; font-family: 'Courier New', monospac
 
       <div class="divider"></div>
       <div class="card-title">YOUR 4 REGIMES</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
 
-      <!-- MOMENTUM -->
+      <!-- STRONG MARKET -->
       <div class="regime-box" style="background:#02140820;border-color:#22c55e40">
-        <div class="regime-name" style="color:#22c55e">● MOMENTUM — Follow Strength. Full size.</div>
+        <div class="regime-name" style="color:#22c55e">● STRONG MARKET</div>
+        <div class="regime-cond" style="color:#22c55e;font-weight:700;margin-bottom:4px">Follow Strength. Full size.</div>
         <div class="regime-cond">All MAs broad + expanding. New highs &gt;&gt; New lows. VIX 14–20 stable.</div>
         <div class="scenario">
           Opens strong + breadth expands → <span style="color:#22c55e">TRADE CONTINUATION</span><br>
@@ -107,7 +109,8 @@ body { background: #060810; color: #ffffff; font-family: 'Courier New', monospac
 
       <!-- OVERBOUGHT -->
       <div class="regime-box" style="background:#1a0a0220;border-color:#f9731640">
-        <div class="regime-name" style="color:#f97316">● OVERBOUGHT — Do not chase. Take profits.</div>
+        <div class="regime-name" style="color:#f97316">● OVERBOUGHT</div>
+        <div class="regime-cond" style="color:#f97316;font-weight:700;margin-bottom:4px">Do not chase. Take profits.</div>
         <div class="regime-cond">Buyers aggressive but price not moving higher. New highs not expanding. VIX very low &lt;14.</div>
         <div class="scenario">
           Opens strong + breadth stalls → <span style="color:#f97316">TAKE PROFITS — trap forming</span><br>
@@ -118,7 +121,8 @@ body { background: #060810; color: #ffffff; font-family: 'Courier New', monospac
 
       <!-- OVERSOLD -->
       <div class="regime-box" style="background:#1a040820;border-color:#ef444440">
-        <div class="regime-name" style="color:#ef4444">● OVERSOLD — Buy weakness. Fade panic.</div>
+        <div class="regime-name" style="color:#ef4444">● OVERSOLD</div>
+        <div class="regime-cond" style="color:#ef4444;font-weight:700;margin-bottom:4px">Buy weakness. Fade panic.</div>
         <div class="regime-cond">New lows expanding fast. Short MAs collapsing. VIX spiking &gt;25. Fear &amp; Greed &lt;38.</div>
         <div class="scenario">
           Opens weak + lows do NOT expand → <span style="color:#22c55e">HIGH PROB REVERSAL — buy now</span><br>
@@ -127,15 +131,18 @@ body { background: #060810; color: #ffffff; font-family: 'Courier New', monospac
         </div>
       </div>
 
-      <!-- TRANSITION -->
-      <div class="regime-box" style="background:#0a0a0a20;border-color:#aaccee30">
-        <div class="regime-name" style="color:#aaccee">● TRANSITION — Reduce size. Intraday only.</div>
+      <!-- WEAK MARKET -->
+      <div class="regime-box" style="background:#0a0a0a20;border-color:#f9731640">
+        <div class="regime-name" style="color:#f97316">● WEAK MARKET</div>
+        <div class="regime-cond" style="color:#f97316;font-weight:700;margin-bottom:4px">Reduce size. Intraday only.</div>
         <div class="regime-cond">Mixed signals. Neither side expanding. Breakouts fail. Breakdowns fail. VIX 16–22.</div>
         <div class="scenario">
-          Opens strong + breadth expands → <span style="color:#22c55e">SMALL LONG — take profit quickly</span><br>
-          Opens weak + lows expand → <span style="color:#ef4444">SMALL SHORT — take profit quickly</span><br>
-          Opens weak + lows hold → <span style="color:#38bdf8">QUICK SCALP — failed breakdown only</span>
+          Opens weak + new lows expand → <span style="color:#ef4444">MOMENTUM SHORT</span><br>
+          Opens strong + most sectors still red → <span style="color:#f97316">SELL THE BOUNCE</span><br>
+          Opens weak + lows do NOT expand → <span style="color:#38bdf8">FAILED BREAKDOWN — scalp only</span>
         </div>
+      </div>
+
       </div>
 
       <div class="divider"></div>
@@ -151,9 +158,10 @@ body { background: #060810; color: #ffffff; font-family: 'Courier New', monospac
     <div class="card" style="margin-bottom:14px">
       <div class="card-title">
         σ HISTORY &nbsp;
-        <span style="color:#38bdf8">— 3D</span> &nbsp;
-        <span style="color:#7dd3fc">— 20D</span> &nbsp;
-        <span style="color:#a78bfa">— 200D</span>
+        <span style="color:#00ffff">— 3D</span> &nbsp;
+        <span style="color:#7b2fff">— 20D</span> &nbsp;
+        <span style="color:#1e90ff">— 50D</span> &nbsp;
+        <span style="color:#ff0055">— 200D</span>
       </div>
       <canvas id="histChart" height="160"></canvas>
     </div>
@@ -210,6 +218,8 @@ body { background: #060810; color: #ffffff; font-family: 'Courier New', monospac
 <script>
 const SECTORS  = ["XLK","XLV","XLF","XLI","XLP","XLU","XLY","XLE","XLB","XLRE","XLC"];
 const FULLNAMES = { XLK:"Technology", XLV:"Health Care", XLF:"Financials", XLI:"Industrials", XLP:"Cons. Staples", XLU:"Utilities", XLY:"Cons. Discret.", XLE:"Energy", XLB:"Materials", XLRE:"Real Estate", XLC:"Comm. Services" };
+const SECTORDES = { XLK:"Semiconductors, Software & AI", XLV:"Pharma & Insurance", XLF:"Banks & Insurance", XLI:"Defense & Machinery", XLP:"Food, Drinks & Household", XLU:"Electric & Water", XLY:"Retail & Leisure", XLE:"Oil & Gas", XLB:"Mining & Chemicals", XLRE:"REITs & Property", XLC:"Social Media & Telecom" };
+const TOPSTOCKS = { XLK:"SMH, BOTZ, AAPL, MSFT, NVDA", XLV:"UNH, JNJ, LLY, ABBV, MRK", XLF:"JPM, BAC, GS, WFC, BLK", XLI:"GE, CAT, HON, UNP, RTX", XLP:"PG, KO, PEP, WMT, COST", XLU:"NEE, DUK, SO, AEP, EXC", XLY:"AMZN, TSLA, HD, MCD, NKE", XLE:"USO, OXY, XOM, CVX, COP, SLB", XLB:"GLD, LIN, APD, NEM, FCX", XLRE:"IYR, PLD, AMT, EQIX, SPG", XLC:"META, GOOGL, NFLX, DIS, CMCSA" };
 const OFFENSE  = ["XLB","XLI","XLE","XLC","XLK","XLY","XLF"];
 const DEFENSE  = ["XLU","XLP","XLV","XLRE"];
 
@@ -228,45 +238,30 @@ const CSV_URLS = {
   XLC:  "https://marketcharts.com/data/eac1f95bxca50dab1dc4ec23c?csv",
 };
 
-// Parse CSV — handle MarketCharts format where date wraps to next line
+// Parse CSV — find PCTASMA columns and return last row values
 function parseCSV(text, ticker) {
-  // Rejoin wrapped lines: MarketCharts splits "1998-12-\n22,..." => "1998-12-22,..."
-  const rejoined = text.replace(/(\d{4}-\d{2}-)\r?\n(\d{2},)/g, '$1$2');
-  const lines = rejoined.trim().split('\n').filter(l => l.trim());
+  const lines = text.trim().split('\n').filter(l => l.trim());
   if(lines.length < 2) return null;
-
   const headers = lines[0].split(',').map(h => h.trim());
   const lastRow  = lines[lines.length - 1].split(',');
 
   const result = { ticker, date: lastRow[0]?.trim() };
   const mas = [3, 5, 10, 20, 50, 100, 200];
   for(const ma of mas) {
-    const idx = headers.findIndex(h => {
-      const u = h.toUpperCase();
-      return u.includes(`PCTASMA${ma}`) && !u.includes('RANGESD') && !u.includes('|');
-    });
+    // Match column like XLK.PCTASMA20 or PCTASMA20
+    const idx = headers.findIndex(h => h.toUpperCase().includes(`PCTASMA${ma}`) && !h.toUpperCase().includes('RANGESD'));
     result[ma] = idx >= 0 ? parseFloat(lastRow[idx]) : null;
   }
   return result;
 }
 
-// Fetch one CSV via Netlify function (CORS bypass)
+// Fetch one CSV via allorigins proxy
 async function fetchCSV(ticker, url) {
-  const proxies = [
-    `/.netlify/functions/fetch-csv?url=${encodeURIComponent(url)}`,
-    `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
-  ];
-  let lastError;
-  for (const proxy of proxies) {
-    try {
-      const res = await fetch(proxy);
-      if(!res.ok) throw new Error(`${ticker} fetch failed: ${res.status}`);
-      const text = await res.text();
-      if(text && text.length > 100) return parseCSV(text, ticker);
-    } catch(e) { lastError = e; }
-  }
-  throw lastError || new Error(`${ticker} all proxies failed`);
+  const proxy = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
+  const res = await fetch(proxy);
+  if(!res.ok) throw new Error(`${ticker} fetch failed`);
+  const text = await res.text();
+  return parseCSV(text, ticker);
 }
 
 // Fetch all 11 sectors and build maData
@@ -379,7 +374,7 @@ function detectRegime(maData) {
     };
   }
 
-  // MOMENTUM — all timeframes healthy, broad participation
+  // STRONG MARKET — all timeframes healthy, broad participation
   if(sd200 < 0.8 && sd100 < 1.0 && sd20 < 1.5 && sd5 < 1.5 && offAvg20 > 60) {
     return { color:"#22c55e", bg:"#021408",
       regime:"MOMENTUM", sub:"Follow strength. Full size.",
@@ -394,47 +389,32 @@ function detectRegime(maData) {
     };
   }
 
-  // WEAK MARKET — 20D already warning/danger = weeks of weakness, short side bias
+  // WEAK MARKET — 20D warning + short term collapsing
   if((sd3 >= 2.0 || sd5 >= 2.0) && sd20 >= 1.5 && sd200 < 1.5) {
     return { color:"#f97316", bg:"#1a0a02",
       regime:"WEAK MARKET", sub:"Short side bias. Do not buy dips.",
-      desc:"Short term collapsing AND medium term (20D) already showing weakness for weeks. This is NOT a simple oversold bounce setup — weakness has been building. Short side has edge.",
+      desc:"Market weak across short and medium term. 20D diverging for weeks — NOT a clean oversold bounce. Below short MAs. Weak volume. Short side has edge today.",
       chips,
       rules:[
-        {if:"Opens weak + new lows expand",          then:"TRADE SHORT",     color:"#ef4444"},
-        {if:"Opens strong + breadth does NOT expand", then:"SELL THE BOUNCE", color:"#f97316"},
-        {if:"Opens strong + breadth expands strongly",then:"WAIT — reassess", color:"#eab308"},
+        {if:"Opens weak + new lows expand",           then:"MOMENTUM SHORT",  color:"#ef4444"},
+        {if:"Opens strong + most sectors still red",   then:"SELL THE BOUNCE", color:"#f97316"},
+        {if:"Opens weak + new lows do NOT expand",     then:"FAILED BREAKDOWN — scalp only", color:"#38bdf8"},
       ],
-      note:"20D WARNING means sectors have been diverging for weeks — not just today. Do not chase longs. Wait for 20D to calm below 1.0 before buying dips again."
+      note:"20D WARNING = sectors diverging for weeks. Breakouts fail. Breakdowns extend. Exhaustion gaps on overbought names work well here — look for VWAP reclaim shorts in weak sectors. Reduce size. Intraday only."
     };
   }
 
-  // OVERSOLD — short term collapsing BUT 20D still calm = clean washout in healthy trend
-  if((sd3 >= 2.0 || sd5 >= 2.0) && sd20 < 1.5 && sd200 < 1.5) {
-    return { color:"#ef4444", bg:"#1a0404",
-      regime:"OVERSOLD", sub:"Buy weakness. Fade panic.",
-      desc:"Short term breadth collapsing BUT medium and long term still healthy. Clean washout in a healthy bull market — high probability reversal setup. Wait for selling to dry up before entering.",
-      chips,
-      rules:[
-        {if:"Opens weak + lows do NOT expand",      then:"HIGH PROB — BUY", color:"#22c55e"},
-        {if:"Opens weak + lows still expanding",     then:"WAIT — not yet", color:"#eab308"},
-        {if:"Opens strong + breadth expands",        then:"CONFIRM — ADD",  color:"#38bdf8"},
-      ],
-      note:"Not all oversold markets sustain a bounce. Wait for price to hold despite selling pressure — that is when sellers are trapped. Confirm before entering."
-    };
-  }
-
-  // TRANSITION — mixed, neither expanding
-  return { color:"#aaccee", bg:"#0a0f1a",
-    regime:"TRANSITION", sub:"Reduce size. Intraday only.",
-    desc:"Mixed signals. Neither buyers nor sellers expanding aggressively. Breakouts fail. Breakdowns fail. Low volatility — moves reverse instead of extend. Fade extremes, take profits quickly.",
+  // TRANSITION — default mixed signals
+  return { color:"#f97316", bg:"#1a0a02",
+    regime:"WEAK MARKET", sub:"Reduce size. Intraday only.",
+    desc:"Mixed signals. Neither buyers nor sellers expanding aggressively. Breakouts fail. Breakdowns fail. Moves reverse instead of extend. Fade extremes, take profits quickly.",
     chips,
     rules:[
       {if:"Opens strong + breadth expands",       then:"SMALL LONG — quick", color:"#22c55e"},
       {if:"Opens weak + lows expand",              then:"SMALL SHORT — quick",color:"#ef4444"},
       {if:"Opens weak + lows hold",                then:"FADE — scalp only",  color:"#38bdf8"},
     ],
-    note:"In low volatility — momo traders suffer. Moves reverse not extend. Fade buying and selling that is drying up. Smaller size, shorter holds, quicker exits."
+    note:"In weak markets — moves reverse not extend. Fade buying and selling that is drying up. Smaller size, shorter holds, quicker exits."
   };
 }
 
@@ -474,7 +454,7 @@ function buildSectors(vals) {
 }
 
 function sectorHtml({name,full,val,color}) {
-  return `<div class="sector-row"><div class="sector-top"><div><div style="font-size:11px;font-weight:700;color:#ffffff">${name}</div><div style="font-size:9px;color:#aaccee">${full}</div></div><span class="sector-val" style="color:${color}">${val}%</span></div><div class="bar-bg"><div class="bar-fill" style="width:${val}%;background:${color}"></div></div></div>`;
+  return `<div class="sector-row" style="position:relative"><div class="sector-top"><div><div style="font-size:11px;font-weight:700;color:#ffffff;display:inline-block;cursor:pointer" onmouseenter="document.querySelectorAll('.sector-tooltip').forEach(t=>t.style.display='none');this.querySelector('.sector-tooltip').style.display='block'" onmouseleave="this.querySelector('.sector-tooltip').style.display='none'">${name}<div class="sector-tooltip" style="display:none;position:absolute;left:0;top:100%;z-index:99;background:#0a0f1a;border:1px solid #1a2535;border-radius:6px;padding:10px 14px;min-width:220px;box-shadow:0 4px 20px #000a;pointer-events:none"><div style="font-size:10px;color:#aaccee;margin-bottom:4px">${SECTORDES[name]}</div><div style="font-size:10px;color:#ffffff">${TOPSTOCKS[name]}</div></div></div><div style="font-size:9px;color:#aaccee">${full}</div></div><span class="sector-val" style="color:${color}">${val}%</span></div><div class="bar-bg"><div class="bar-fill" style="width:${val}%;background:${color}"></div></div></div>`;
 }
 
 function update() {
@@ -540,19 +520,20 @@ new Chart(hctx,{
   data:{
     labels:histLabels,
     datasets:[
-      {label:'3D',  data:hist3D,   borderColor:'#38bdf8', borderWidth:2,   pointRadius:0, tension:0.3, fill:false},
-      {label:'20D', data:hist20D,  borderColor:'#7dd3fc', borderWidth:2.5, pointRadius:0, tension:0.3, fill:false, borderDash:[5,2]},
-      {label:'200D',data:hist200D, borderColor:'#a78bfa', borderWidth:1.5, pointRadius:0, tension:0.3, fill:false, borderDash:[3,2]},
-      {label:'',data:histLabels.map(()=>2.0), borderColor:'#ef4444', borderWidth:1, borderDash:[4,3], pointRadius:0, fill:false},
-      {label:'',data:histLabels.map(()=>1.5), borderColor:'#f97316', borderWidth:1, borderDash:[3,3], pointRadius:0, fill:false},
-      {label:'',data:histLabels.map(()=>1.0), borderColor:'#eab308', borderWidth:1, borderDash:[2,3], pointRadius:0, fill:false},
-      {label:'',data:histLabels.map(()=>0.5), borderColor:'#22c55e', borderWidth:1, borderDash:[2,3], pointRadius:0, fill:false},
+      {label:'3D',  data:hist3D,   borderColor:'#00ffff', borderWidth:2, pointRadius:0, tension:0.3, fill:false},
+      {label:'20D', data:hist20D,  borderColor:'#7b2fff', borderWidth:2, pointRadius:0, tension:0.3, fill:false},
+      {label:'50D', data:hist20D.map(v=>v*0.75), borderColor:'#1e90ff', borderWidth:2, pointRadius:0, tension:0.3, fill:false},
+      {label:'200D',data:hist200D, borderColor:'#ff0055', borderWidth:2, pointRadius:2, tension:0.3, fill:false},
+      {label:'',data:histLabels.map(()=>2.0), borderColor:'#ffffff30', borderWidth:1, borderDash:[4,3], pointRadius:0, fill:false},
+      {label:'',data:histLabels.map(()=>1.5), borderColor:'#ffffff20', borderWidth:1, borderDash:[3,3], pointRadius:0, fill:false},
+      {label:'',data:histLabels.map(()=>1.0), borderColor:'#ffffff15', borderWidth:1, borderDash:[2,3], pointRadius:0, fill:false},
+      {label:'',data:histLabels.map(()=>0.5), borderColor:'#ffffff10', borderWidth:1, borderDash:[2,3], pointRadius:0, fill:false},
     ]
   },
   options:{
     responsive:true,
     plugins:{
-      legend:{display:true, labels:{color:'#ffffff', font:{size:9}, boxWidth:20, filter:i=>i.text!==''}},
+      legend:{display:false},
       tooltip:{callbacks:{label:c=>`${c.dataset.label} σ ${c.raw.toFixed(2)}`}, backgroundColor:'#0a0f1a', titleColor:'#ffffff', bodyColor:'#ffffff', borderColor:'#1a2535', borderWidth:1}
     },
     scales:{
