@@ -158,10 +158,9 @@ body { background: #060810; color: #ffffff; font-family: 'Courier New', monospac
     <div class="card" style="margin-bottom:14px">
       <div class="card-title">
         σ HISTORY &nbsp;
-        <span style="color:#00ffff">— 3D</span> &nbsp;
-        <span style="color:#7b2fff">— 20D</span> &nbsp;
-        <span style="color:#1e90ff">— 50D</span> &nbsp;
-        <span style="color:#ff0055">— 200D</span>
+        <span style="color:#a78bfa">— 3D</span> &nbsp;
+        <span style="color:#38bdf8">— 20D</span> &nbsp;
+        <span style="color:#ef4444">— 200D</span>
       </div>
       <canvas id="histChart" height="160"></canvas>
     </div>
@@ -454,7 +453,7 @@ function buildSectors(vals) {
 }
 
 function sectorHtml({name,full,val,color}) {
-  return `<div class="sector-row" style="position:relative"><div class="sector-top"><div><div style="font-size:11px;font-weight:700;color:#ffffff;display:inline-block;cursor:pointer" onmouseenter="document.querySelectorAll('.sector-tooltip').forEach(t=>t.style.display='none');this.querySelector('.sector-tooltip').style.display='block'" onmouseleave="this.querySelector('.sector-tooltip').style.display='none'">${name}<div class="sector-tooltip" style="display:none;position:absolute;left:0;top:100%;z-index:99;background:#0a0f1a;border:1px solid #1a2535;border-radius:6px;padding:10px 14px;min-width:220px;box-shadow:0 4px 20px #000a;pointer-events:none"><div style="font-size:10px;color:#aaccee;margin-bottom:4px">${SECTORDES[name]}</div><div style="font-size:10px;color:#ffffff">${TOPSTOCKS[name]}</div></div></div><div style="font-size:9px;color:#aaccee">${full}</div></div><span class="sector-val" style="color:${color}">${val}%</span></div><div class="bar-bg"><div class="bar-fill" style="width:${val}%;background:${color}"></div></div></div>`;
+  return `<div class="sector-row" style="cursor:default;position:relative" onmouseenter="this.querySelector('.sector-tooltip').style.display='block'" onmouseleave="this.querySelector('.sector-tooltip').style.display='none'"><div class="sector-top"><div><div style="font-size:11px;font-weight:700;color:#ffffff">${name}</div><div style="font-size:9px;color:#aaccee">${full}</div></div><span class="sector-val" style="color:${color}">${val}%</span></div><div class="bar-bg"><div class="bar-fill" style="width:${val}%;background:${color}"></div></div><div class="sector-tooltip" style="display:none;position:absolute;left:0;top:100%;z-index:99;background:#0a0f1a;border:1px solid #1a2535;border-radius:6px;padding:10px 14px;min-width:220px;box-shadow:0 4px 20px #000a"><div style="font-size:10px;color:#aaccee;margin-bottom:4px">${SECTORDES[name]}</div><div style="font-size:10px;color:#ffffff">${TOPSTOCKS[name]}</div></div></div>`;
 }
 
 function update() {
@@ -520,20 +519,19 @@ new Chart(hctx,{
   data:{
     labels:histLabels,
     datasets:[
-      {label:'3D',  data:hist3D,   borderColor:'#00ffff', borderWidth:2, pointRadius:0, tension:0.3, fill:false},
-      {label:'20D', data:hist20D,  borderColor:'#7b2fff', borderWidth:2, pointRadius:0, tension:0.3, fill:false},
-      {label:'50D', data:hist20D.map(v=>v*0.75), borderColor:'#1e90ff', borderWidth:2, pointRadius:0, tension:0.3, fill:false},
-      {label:'200D',data:hist200D, borderColor:'#ff0055', borderWidth:2, pointRadius:2, tension:0.3, fill:false},
-      {label:'',data:histLabels.map(()=>2.0), borderColor:'#ffffff30', borderWidth:1, borderDash:[4,3], pointRadius:0, fill:false},
-      {label:'',data:histLabels.map(()=>1.5), borderColor:'#ffffff20', borderWidth:1, borderDash:[3,3], pointRadius:0, fill:false},
-      {label:'',data:histLabels.map(()=>1.0), borderColor:'#ffffff15', borderWidth:1, borderDash:[2,3], pointRadius:0, fill:false},
-      {label:'',data:histLabels.map(()=>0.5), borderColor:'#ffffff10', borderWidth:1, borderDash:[2,3], pointRadius:0, fill:false},
+      {label:'3D',  data:hist3D,   borderColor:'#a78bfa', borderWidth:2,   pointRadius:0, tension:0.3, fill:false},
+      {label:'20D', data:hist20D,  borderColor:'#38bdf8', borderWidth:2.5, pointRadius:0, tension:0.3, fill:false, borderDash:[5,2]},
+      {label:'200D',data:hist200D, borderColor:'#ef4444', borderWidth:2.5, pointRadius:3, tension:0.3, fill:false, borderDash:[3,2]},
+      {label:'',data:histLabels.map(()=>2.0), borderColor:'#ef4444', borderWidth:1, borderDash:[4,3], pointRadius:0, fill:false},
+      {label:'',data:histLabels.map(()=>1.5), borderColor:'#f97316', borderWidth:1, borderDash:[3,3], pointRadius:0, fill:false},
+      {label:'',data:histLabels.map(()=>1.0), borderColor:'#eab308', borderWidth:1, borderDash:[2,3], pointRadius:0, fill:false},
+      {label:'',data:histLabels.map(()=>0.5), borderColor:'#22c55e', borderWidth:1, borderDash:[2,3], pointRadius:0, fill:false},
     ]
   },
   options:{
     responsive:true,
     plugins:{
-      legend:{display:false},
+      legend:{display:true, labels:{color:'#ffffff', font:{size:9}, boxWidth:20, filter:i=>i.text!==''}},
       tooltip:{callbacks:{label:c=>`${c.dataset.label} σ ${c.raw.toFixed(2)}`}, backgroundColor:'#0a0f1a', titleColor:'#ffffff', bodyColor:'#ffffff', borderColor:'#1a2535', borderWidth:1}
     },
     scales:{
