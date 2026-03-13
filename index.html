@@ -240,28 +240,43 @@ const CSV_URLS = {
 
 // Parse CSV — find PCTASMA columns and return last row values
 function parseCSV(text, ticker) {
-  const lines = text.trim().split('\n').filter(l => l.trim());
+  // Rejoin wrapped lines: MarketCharts splits "1998-12-\n22,..." => "1998-12-22,..."
+  const rejoined = text.replace(/(\d{4}-\d{2}-)\r?\n(\d{2},)/g, '$1$2');
+  const lines = rejoined.trim().split('\n').filter(l => l.trim());
   if(lines.length < 2) return null;
+
   const headers = lines[0].split(',').map(h => h.trim());
   const lastRow  = lines[lines.length - 1].split(',');
 
   const result = { ticker, date: lastRow[0]?.trim() };
   const mas = [3, 5, 10, 20, 50, 100, 200];
   for(const ma of mas) {
-    // Match column like XLK.PCTASMA20 or PCTASMA20
-    const idx = headers.findIndex(h => h.toUpperCase().includes(`PCTASMA${ma}`) && !h.toUpperCase().includes('RANGESD'));
+    const idx = headers.findIndex(h => {
+      const u = h.toUpperCase();
+      return u.includes(`PCTASMA${ma}`) && !u.includes('RANGESD') && !u.includes('|');
+    });
     result[ma] = idx >= 0 ? parseFloat(lastRow[idx]) : null;
   }
   return result;
 }
 
-// Fetch one CSV via allorigins proxy
+// Fetch one CSV via Netlify function (CORS bypass)
 async function fetchCSV(ticker, url) {
-  const proxy = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
-  const res = await fetch(proxy);
-  if(!res.ok) throw new Error(`${ticker} fetch failed`);
-  const text = await res.text();
-  return parseCSV(text, ticker);
+  const proxies = [
+    `/.netlify/functions/fetch-csv?url=${encodeURIComponent(url)}`,
+    `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+  ];
+  let lastError;
+  for (const proxy of proxies) {
+    try {
+      const res = await fetch(proxy);
+      if(!res.ok) throw new Error(`${ticker} fetch failed: ${res.status}`);
+      const text = await res.text();
+      if(text && text.length > 100) return parseCSV(text, ticker);
+    } catch(e) { lastError = e; }
+  }
+  throw lastError || new Error(`${ticker} all proxies failed`);
 }
 
 // Fetch all 11 sectors and build maData
@@ -551,24 +566,4 @@ barChartObj = new Chart(bctx,{
   data:{labels:s0.map(s=>s.name), datasets:[{data:s0.map(s=>s.val), backgroundColor:s0.map(s=>s.color+'cc'), borderRadius:3}]},
   options:{
     responsive:true,
-    plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.raw}%`}, backgroundColor:'#0a0f1a', titleColor:'#ffffff', bodyColor:'#ffffff', borderColor:'#1a2535', borderWidth:1}},
-    scales:{
-      x:{grid:{display:false}, ticks:{color:'#ffffff', font:{size:9}}},
-      y:{grid:{color:'#1a253540'}, ticks:{color:'#ffffff', font:{size:9}, callback:v=>v+'%'}, min:0, max:100}
-    }
-  }
-});
-
-// ── INIT ─────────────────────────────────────────────────────────
-update();
-
-(async () => {
-  const realData = await loadRealData();
-  if(realData) {
-    maData = realData;
-    update();
-  }
-})();
-</script>
-</body>
-</html>
+    plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.raw}%`}, b
