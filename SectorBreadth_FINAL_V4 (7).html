@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sector Breadth Divergence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #060810; color: #ffffff; font-family: 'Courier New', monospace; font-size: 13px; padding: 16px 20px; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+.header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1a2535; padding-bottom: 12px; margin-bottom: 16px; }
+.header h1 { font-family: Impact, sans-serif; font-size: 24px; color: #ffffff; letter-spacing: 2px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; align-items: start; }
+.card { background: #0a0f1a; border: 1px solid #1a2535; border-radius: 8px; padding: 14px; }
+.card-title { font-size: 10px; color: #ffffff; letter-spacing: 2px; margin-bottom: 12px; font-weight: 700; }
+.signal-box { border-radius: 8px; padding: 16px; margin-bottom: 14px; }
+.signal-big { font-family: Impact, sans-serif; font-size: 56px; line-height: 1; }
+.signal-label { font-size: 14px; font-weight: 700; margin-top: 6px; letter-spacing: 2px; }
+.ma-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 8px; margin-bottom: 4px; border-radius: 5px; cursor: pointer; border: 1px solid transparent; transition: all .15s; }
+.ma-row:hover { background: #1a2535; }
+.ma-row.active { background: #1a2535; }
+.ma-name { color: #ffffff; font-size: 12px; width: 42px; font-weight: 700; }
+.ma-sd { font-size: 20px; font-weight: 700; }
+.ma-badge { font-size: 9px; padding: 3px 7px; border-radius: 2px; font-weight: 700; }
+.divider { border-top: 1px solid #1a2535; margin: 12px 0; }
+.level-row { display: flex; justify-content: space-between; margin-bottom: 7px; font-size: 11px; }
+.regime-box { border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid; }
+.regime-name { font-size: 11px; font-weight: 700; letter-spacing: 1px; margin-bottom: 3px; }
+.regime-cond { font-size: 9px; color: #aaccee; margin-bottom: 4px; line-height: 1.5; }
+.regime-text { font-size: 10px; line-height: 1.6; color: #ffffff; }
+.scenario { font-size: 9px; margin-top: 5px; padding-top: 5px; border-top: 1px solid #ffffff15; line-height: 1.8; color: #aaccee; }
+.scenario span { font-weight: 700; }
+.combined-box { border-radius: 8px; padding: 14px; margin-bottom: 14px; border: 2px solid; }
+.combined-title { font-size: 10px; letter-spacing: 2px; font-weight: 700; margin-bottom: 10px; color: #ffffff; }
+.combined-regime { font-family: Impact, sans-serif; font-size: 26px; margin-bottom: 6px; letter-spacing: 1px; }
+.combined-sub { font-size: 11px; font-weight: 700; margin-bottom: 8px; letter-spacing: 1px; }
+.combined-desc { font-size: 11px; line-height: 1.8; color: #ffffff; margin-bottom: 12px; }
+.tf-bar { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+.tf-chip { font-size: 9px; padding: 3px 8px; border-radius: 2px; font-weight: 700; }
+.intraday-title { font-size: 10px; letter-spacing: 2px; color: #ffffff; margin-bottom: 8px; font-weight: 700; border-top: 1px solid #ffffff20; padding-top: 10px; }
+.rule-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; font-size: 10px; gap: 8px; }
+.rule-if { color: #aaccee; flex: 1; line-height: 1.6; }
+.rule-then { font-size: 9px; padding: 2px 7px; border-radius: 2px; font-weight: 700; white-space: nowrap; }
+.dr-note { font-size: 9px; color: #aaccee; margin-top: 10px; padding-top: 8px; border-top: 1px solid #ffffff15; line-height: 1.7; font-style: italic; }
+.group-label { font-size: 9px; letter-spacing: 2px; font-weight: 700; padding: 4px 0 6px 0; margin-top: 8px; border-bottom: 1px solid #1a2535; margin-bottom: 8px; }
+.sector-row { margin-bottom: 10px; }
+.sector-top { display: flex; justify-content: space-between; margin-bottom: 2px; align-items: flex-start; }
+.sector-val { font-size: 11px; font-weight: 700; }
+.bar-bg { height: 5px; background: #1a2535; border-radius: 2px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 2px; }
+.interp-label { font-family: Impact, sans-serif; font-size: 40px; margin-bottom: 6px; letter-spacing: 1px; }
+.interp-sd { font-family: Impact, sans-serif; font-size: 22px; margin-bottom: 10px; }
+.interp-desc { font-size: 12px; line-height: 2.0; color: #ffffff; }
+.footer { text-align: center; margin-top: 14px; font-size: 9px; color: #4a6a8a; letter-spacing: 2px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>SECTOR BREADTH DIVERGENCE</h1>
+  <div style="text-align:right;font-size:10px;color:#aaccee">
+    <div>DATA AS OF 2026-03-12</div>
+    <div style="margin-top:3px;color:#f97316">SIMULATED PREVIEW</div>
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- LEFT -->
+  <div>
+    <div class="signal-box" id="signalBox">
+      <div class="card-title">TODAY · 20D MA</div>
+      <div class="signal-big" id="signalBig">σ –</div>
+      <div class="signal-label" id="signalLabel">–</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">STD DEVIATION ALL TIMEFRAMES</div>
+      <div id="maList"></div>
+
+      <div class="divider"></div>
+      <div class="card-title">REFERENCE LEVELS</div>
+      <div class="level-row"><span style="color:#ef4444;font-weight:700">σ &gt; 2.0</span><span style="color:#ef4444;font-weight:700">DANGER</span></div>
+      <div class="level-row"><span style="color:#f97316;font-weight:700">σ &gt; 1.5</span><span style="color:#f97316;font-weight:700">WARNING</span></div>
+      <div class="level-row"><span style="color:#eab308;font-weight:700">σ &gt; 1.0</span><span style="color:#eab308;font-weight:700">CAUTION</span></div>
+      <div class="level-row"><span style="color:#22c55e;font-weight:700">σ &lt; 0.5</span><span style="color:#22c55e;font-weight:700">CALM</span></div>
+
+      <div class="divider"></div>
+      <div class="card-title">YOUR 4 REGIMES — DR STEENBARGER METHOD</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+
+      <!-- TRENDING -->
+      <div class="regime-box" style="background:#02140820;border-color:#22c55e40">
+        <div class="regime-name" style="color:#22c55e">● MOMENTUM</div>
+        <div class="regime-cond" style="color:#22c55e;font-weight:700;margin-bottom:4px">Follow strength. Full size.</div>
+        <div class="regime-cond">σ low all timeframes. Offense above 60% on 20D. Sectors moving together. Breakouts extend and work.</div>
+        <div class="scenario">
+          Opens strong + breadth expands → <span style="color:#22c55e">TRADE CONTINUATION</span><br>
+          Opens weak + lows do NOT expand → <span style="color:#38bdf8">BUY THE DIP — bull intact</span><br>
+          Opens weak + lows expand → <span style="color:#eab308">SMALL SHORT — expect bounce</span>
+        </div>
+      </div>
+
+      <!-- CROWDED -->
+      <div class="regime-box" style="background:#1a0a0220;border-color:#f9731640">
+        <div class="regime-name" style="color:#f97316">● OVERBOUGHT</div>
+        <div class="regime-cond" style="color:#f97316;font-weight:700;margin-bottom:4px">Do not chase. Take profits.</div>
+        <div class="regime-cond">σ very low short term. Offense above 75% on 5D. Everyone in same trade. Participation maxed out — no new buyers left.</div>
+        <div class="scenario">
+          Opens strong + breadth stalls → <span style="color:#f97316">TAKE PROFITS — trap forming</span><br>
+          Opens weak + selling starts → <span style="color:#ef4444">DO NOT BUY — large players exiting</span><br>
+          Opens weak + lows hold → <span style="color:#eab308">WAIT — no edge yet</span>
+        </div>
+      </div>
+
+      <!-- ROTATION -->
+      <div class="regime-box" style="background:#0a0a0a20;border-color:#38bdf840">
+        <div class="regime-name" style="color:#38bdf8">● CHOPPY</div>
+        <div class="regime-cond" style="color:#38bdf8;font-weight:700;margin-bottom:4px">Be selective. Lead sectors only.</div>
+        <div class="regime-cond">Mixed σ signals. Some timeframes healthy, some not. Neither buyers nor sellers dominant. Breakouts work in leaders only.</div>
+        <div class="scenario">
+          Opens strong + breadth expands → <span style="color:#22c55e">SMALL LONG — quick profits</span><br>
+          Opens weak + lows expand → <span style="color:#ef4444">SMALL SHORT — quick profits</span><br>
+          Opens weak + lows hold → <span style="color:#38bdf8">FADE — scalp only</span>
+        </div>
+      </div>
+
+      <!-- WEAK MARKET -->
+      <div class="regime-box" style="background:#1a040820;border-color:#ef444440">
+        <div class="regime-name" style="color:#ef4444">● WEAK MARKET</div>
+        <div class="regime-cond" style="color:#ef4444;font-weight:700;margin-bottom:4px">Reduce size. Short side bias.</div>
+        <div class="regime-cond">σ high short and medium term. Sectors sharply diverging for weeks. Breakouts fail. Breakdowns extend.</div>
+        <div class="scenario">
+          Opens weak + new lows expand → <span style="color:#ef4444">MOMENTUM SHORT</span><br>
+          Opens strong + most sectors still red → <span style="color:#f97316">SELL THE BOUNCE</span><br>
+          Opens weak + lows do NOT expand → <span style="color:#38bdf8">FAILED BREAKDOWN — scalp only</span>
+        </div>
+      </div>
+
+      <!-- OVERSOLD -->
+      <div class="regime-box" style="background:#02140820;border-color:#22c55e40;grid-column:1/-1">
+        <div class="regime-name" style="color:#22c55e">● OVERSOLD</div>
+        <div class="regime-cond" style="color:#22c55e;font-weight:700;margin-bottom:4px">Buy weakness. Fade panic.</div>
+        <div class="regime-cond">Cross-sector avg % above 50D MA below 25%. Stocks stretched too far down. Bounce edge active per Dr Steenbarger — next 5 days historically ~4x normal returns.</div>
+        <div class="scenario">
+          Opens weak + lows do NOT expand → <span style="color:#22c55e">HIGH PROB REVERSAL — buy now</span><br>
+          Opens weak + lows still expanding → <span style="color:#eab308">WAIT — not yet, more selling coming</span><br>
+          Opens strong + breadth expands → <span style="color:#38bdf8">CONFIRM LONG — add size</span><br>
+          <span style="color:#ef4444;font-weight:700">WARNING — if WEAK MARKET also active: oversold in downtrend. Bounces fail more often. Reduce size. Wait for lows to stop expanding first.</span>
+        </div>
+      </div>
+
+      </div>
+
+      <div class="divider"></div>
+      <div style="font-size:9px;color:#aaccee;line-height:1.8;font-style:italic">
+        "In volatile markets — size DOWN. Volatility is already sizing up your positions. The faster the market moves, the slower you should make yourself to adapt."
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MIDDLE -->
+  <div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title">
+        σ HISTORY &nbsp;
+        <span style="color:#00ffff">— 3D</span> &nbsp;
+        <span style="color:#7b2fff">— 20D</span> &nbsp;
+        <span style="color:#1e90ff">— 50D</span> &nbsp;
+        <span style="color:#ff0055">— 200D</span>
+      </div>
+      <canvas id="histChart" height="160"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title" id="barTitle">% STOCKS ABOVE MA — 20D</div>
+      <canvas id="barChart" height="160"></canvas>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div>
+    <div class="combined-box" id="combinedBox">
+      <div class="combined-title">TODAY'S REGIME</div>
+      <div class="tf-bar" id="tfBar"></div>
+      <div class="combined-regime" id="combinedRegime">–</div>
+      <div class="combined-sub" id="combinedSub">–</div>
+      <div class="combined-desc" id="combinedDesc">–</div>
+      <div class="intraday-title">INTRADAY RULES — TODAY</div>
+      <div class="rule-row">
+        <span class="rule-if" id="ruleIf1">–</span>
+        <span class="rule-then" id="ruleThen1">–</span>
+      </div>
+      <div class="rule-row">
+        <span class="rule-if" id="ruleIf2">–</span>
+        <span class="rule-then" id="ruleThen2">–</span>
+      </div>
+      <div class="rule-row">
+        <span class="rule-if" id="ruleIf3">–</span>
+        <span class="rule-then" id="ruleThen3">–</span>
+      </div>
+      <div class="dr-note" id="drNote">–</div>
+      <div class="intraday-title" id="alignmentTitle" style="display:none">SIGNAL ALIGNMENT</div>
+      <div id="alignmentScore" style="font-size:11px;font-weight:700;margin-bottom:6px;letter-spacing:1px;display:none"></div>
+      <div id="alignmentSignals" style="font-size:9px;line-height:1.9;color:#aaccee;display:none"></div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px" id="interpBox">
+      <div class="card-title" id="interpTitle">SIGNAL · CLICK A TIMEFRAME</div>
+      <div class="interp-label" id="interpLabel">–</div>
+      <div class="interp-sd" id="interpSd"></div>
+      <div class="interp-desc" id="interpDesc">Click any MA timeframe on the left.</div>
+    </div>
+
+    <!-- 50D BREADTH QUARTILE — Dr Steenbarger method -->
+    <div class="card" style="margin-bottom:14px" id="breadth50Card">
+      <div class="card-title">50D BREADTH QUARTILE</div>
+      <div id="breadth50Label" style="font-family:Impact,sans-serif;font-size:28px;letter-spacing:1px;margin-bottom:4px">–</div>
+      <div id="breadth50Sub" style="font-size:11px;font-weight:700;margin-bottom:8px;letter-spacing:1px">–</div>
+      <div id="breadth50Desc" style="font-size:10px;line-height:1.8;color:#ffffff">Loading historical data...</div>
+    </div>
+
+    <!-- BOLLINGER BAND BREADTH — Dr Steenbarger method -->
+    <div class="card" style="margin-bottom:14px" id="bollingerCard">
+      <div class="card-title">NYSE BOLLINGER BAND BREADTH</div>
+      <div id="bollingerLabel" style="font-family:Impact,sans-serif;font-size:28px;letter-spacing:1px;margin-bottom:4px">–</div>
+      <div id="bollingerSub" style="font-size:11px;font-weight:700;margin-bottom:8px;letter-spacing:1px">–</div>
+      <div id="bollingerDesc" style="font-size:10px;line-height:1.8;color:#ffffff">Loading...</div>
+      <div id="bollingerQuartile" style="font-size:9px;color:#aaccee;margin-top:6px;line-height:1.6;font-style:italic"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" id="sectorTitle">SECTORS — 20D</div>
+      <div id="sectorList"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">σ = STD DEV OF 11 SECTOR BREADTHS × 10 — DR STEENBARGER METHOD</div>
+
+<script>
+const SECTORS  = ["XLK","XLV","XLF","XLI","XLP","XLU","XLY","XLE","XLB","XLRE","XLC"];
+const FULLNAMES = { XLK:"Technology", XLV:"Health Care", XLF:"Financials", XLI:"Industrials", XLP:"Cons. Staples", XLU:"Utilities", XLY:"Cons. Discret.", XLE:"Energy", XLB:"Materials", XLRE:"Real Estate", XLC:"Comm. Services" };
+const SECTORDES = { XLK:"Semiconductors, Software & AI", XLV:"Pharma & Insurance", XLF:"Banks & Insurance", XLI:"Defense & Machinery", XLP:"Food, Drinks & Household", XLU:"Electric & Water", XLY:"Retail & Leisure", XLE:"Oil & Gas", XLB:"Mining & Chemicals", XLRE:"REITs & Property", XLC:"Social Media & Telecom" };
+const TOPSTOCKS = {
+  XLK:"NVDA → AI & GPU leader\nAAPL → iPhone & services\nMSFT → Cloud & enterprise\nAVGO → Semiconductors\nSMH → Chip ETF",
+  XLV:"UNH → Largest US insurer\nLLY → Weight loss & diabetes\nJNJ → Pharma & medtech\nABBV → Immunology drugs\nMRK → Cancer & vaccines",
+  XLF:"JPM → Largest US bank\nBAC → Retail & investment\nGS → Investment banking\nWFC → Consumer banking\nBLK → Asset management",
+  XLI:"GE → Aerospace & energy\nCAT → Heavy machinery\nRTX → Defense & aerospace\nHON → Industrial tech\nUNP → Rail freight",
+  XLP:"PG → Consumer goods\nKO → Beverages global\nPEP → Snacks & drinks\nWMT → Retail giant\nCOST → Wholesale clubs",
+  XLU:"NEE → NextEra (renewable + nuclear)\nDUK → Duke (electric + gas)\nSO → Southern (electric + nuclear)\nAEP → American Electric\nEXC → Exelon (largest nuclear US)\nPCG → PG&E (electric + gas)\nSRE → Sempra Energy\n⚛ NUCLEAR → NLR, URA, URNM",
+  XLY:"AMZN → E-commerce & cloud\nTSLA → Electric vehicles\nHD → Home improvement\nMCD → Fast food global\nNKE → Sportswear",
+  XLE:"XOM → Largest US oil\nCVX → Integrated oil\nCOP → E&P focused\nOXY → Permian basin\nSLB → Oilfield services",
+  XLB:"LIN → Industrial gases\nAPD → Air products\nNEM → Gold mining\nFCX → Copper mining\nGLD → Gold ETF",
+  XLRE:"PLD → Logistics REIT\nAMT → Cell towers\nEQIX → Data centers\nSPG → Shopping malls\nIYR → REIT ETF",
+  XLC:"META → Social media\nGOOGL → Search & cloud\nNFLX → Streaming\nDIS → Entertainment\nCMCSA → Cable & media"
+};
+const OFFENSE = ["XLB","XLI","XLE","XLC","XLK","XLY","XLF"];
+const DEFENSE = ["XLU","XLP","XLV","XLRE"];
+
+const BB_URL = "https://marketcharts.com/data/eac1f95bx778e6e6210d5c8fa?csv";
+const BB_LOWER_URL = "https://marketcharts.com/data/eac1f95bx807b770781124da2?csv";
+
+const CSV_URLS = {
+  XLK:  "https://marketcharts.com/data/eac1f95bx3f5d0f331de2676d?csv",
+  XLV:  "https://marketcharts.com/data/eac1f95bx407f83b8218832e2?csv",
+  XLF:  "https://marketcharts.com/data/eac1f95bx4441b1eba6fb25ac?csv",
+  XLI:  "https://marketcharts.com/data/eac1f95bx190a9d72bafd6ce7?csv",
+  XLP:  "https://marketcharts.com/data/eac1f95bxddc8dbb3c6453991?csv",
+  XLU:  "https://marketcharts.com/data/eac1f95bxdbe99ca30fcf2982?csv",
+  XLY:  "https://marketcharts.com/data/eac1f95bxfac6a66661b831eb?csv",
+  XLE:  "https://marketcharts.com/data/eac1f95bx648b5b0370eef5e0?csv",
+  XLB:  "https://marketcharts.com/data/eac1f95bxa9cac8f73c01eb22?csv",
+  XLRE: "https://marketcharts.com/data/eac1f95bxa160ab69be24d4bc?csv",
+  XLC:  "https://marketcharts.com/data/eac1f95bxca50dab1dc4ec23c?csv",
+};
+
+function parseCSV(text, ticker) {
+  const rejoined = text.replace(/(\d{4}-\d{2}-)\r?\n(\d{2},)/g, '$1$2');
+  const lines = rejoined.trim().split('\n').filter(l => l.trim());
+  if(lines.length < 2) return null;
+  const headers = lines[0].split(',').map(h => h.trim());
+  const lastRow  = lines[lines.length - 1].split(',');
+  const result = { ticker, date: lastRow[0]?.trim() };
+  const mas = [3, 5, 10, 20, 50, 100, 200];
+  for(const ma of mas) {
+    const idx = headers.findIndex(h => {
+      const u = h.toUpperCase();
+      return u.includes(`PCTASMA${ma}`) && !u.includes('RANGESD') && !u.includes('|');
+    });
+    result[ma] = idx >= 0 ? parseFloat(lastRow[idx]) : null;
+  }
+
+  return result;
+}
+
+async function fetchCSV(ticker, url) {
+  const proxies = [
+    `/.netlify/functions/fetch-csv?url=${encodeURIComponent(url)}`,
+    `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+  ];
+  let lastError;
+  for (const proxy of proxies) {
+    try {
+      const res = await fetch(proxy);
+      if(!res.ok) throw new Error(`${ticker} fetch failed: ${res.status}`);
+      const text = await res.text();
+      if(text && text.length > 100) return parseCSV(text, ticker);
+    } catch(e) { lastError = e; }
+  }
+  throw lastError || new Error(`${ticker} all proxies failed`);
+}
+
+async function fetchBollingerBand() {
+  const proxies = [
+    `/.netlify/functions/fetch-csv?url=${encodeURIComponent(BB_URL)}`,
+    `https://corsproxy.io/?url=${encodeURIComponent(BB_URL)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(BB_URL)}`
+  ];
+  for(const proxy of proxies) {
+    try {
+      const res = await fetch(proxy);
+      if(!res.ok) continue;
+      const text = await res.text();
+      if(!text || text.length < 100) continue;
+      const lines = text.trim().split('\n').filter(l => l.trim());
+      if(lines.length < 2) continue;
+      const headers = lines[0].split(',').map(h => h.trim());
+      const bbIdx = headers.findIndex(h => h.toUpperCase().includes('PCTABBUPPER'));
+      if(bbIdx < 0) continue;
+      const lastRow = lines[lines.length - 1].split(',');
+      const val = parseFloat(lastRow[bbIdx]);
+      if(isNaN(val)) continue;
+      const allVals = lines.slice(1).map(l => parseFloat(l.split(',')[bbIdx])).filter(v => !isNaN(v));
+      allVals.sort((a,b) => a - b);
+      const q25 = allVals[Math.floor(allVals.length * 0.25)];
+      const q75 = allVals[Math.floor(allVals.length * 0.75)];
+      return { current: Math.round(val * 100) / 100, q25: Math.round(q25*100)/100, q75: Math.round(q75*100)/100 };
+    } catch(e) { continue; }
+  }
+  return null;
+}
+
+async function fetchBollingerLower() {
+  try {
+    const res = await fetch(`/.netlify/functions/fetch-csv?url=${encodeURIComponent(BB_LOWER_URL)}`);
+    if(!res.ok) return null;
+    const text = await res.text();
+    if(!text || text.length < 100) return null;
+    const lines = text.trim().split('\n').filter(l => l.trim());
+    if(lines.length < 2) return null;
+    const headers = lines[0].split(',').map(h => h.trim());
+    const bbIdx = headers.findIndex(h => h.toUpperCase().includes('BELOW') || h.toUpperCase().includes('PCTBELOWLOWER'));
+    if(bbIdx < 0) return null;
+    const lastRow = lines[lines.length - 1].split(',');
+    const val = parseFloat(lastRow[bbIdx]);
+    if(isNaN(val)) return null;
+    const allVals = lines.slice(1).map(l => parseFloat(l.split(',')[bbIdx])).filter(v => !isNaN(v));
+    allVals.sort((a,b) => a - b);
+    const q25 = allVals[Math.floor(allVals.length * 0.25)];
+    const q75 = allVals[Math.floor(allVals.length * 0.75)];
+    return { current: Math.round(val*100)/100, q25: Math.round(q25*100)/100, q75: Math.round(q75*100)/100 };
+  } catch(e) { return null; }
+}
+
+async function loadRealData() {
+  setStatus('loading');
+  try {
+    const [results, bbData] = await Promise.all([
+      Promise.all(SECTORS.map(s => fetchCSV(s, CSV_URLS[s]))),
+      fetchBollingerBand()
+    ]);
+    const valid = results.filter(r => r && r[20] !== null);
+    if(valid.length < 8) throw new Error('Too many sectors failed');
+    const mas = [3, 5, 10, 20, 50, 100, 200];
+    const realMaData = mas.map(ma => ({
+      ma,
+      label: ma + 'D',
+      sd: calcSD(SECTORS.map((s,i) => results[i]?.[ma] ?? 50)),
+      vals: SECTORS.map((s,i) => results[i]?.[ma] ?? 50),
+    }));
+    const currentAvg50 = results.reduce((sum, r) => sum + (r?.[50] ?? 50), 0) / results.length;
+    window.breadth50Data = { current: Math.round(currentAvg50 * 10) / 10 };
+    window.maData = realMaData;
+    updateBreadth50Card();
+    updateAlignmentCard();
+    if(bbData) { window.bbData = bbData; }
+    const bbLowerData = await fetchBollingerLower();
+    if(bbLowerData) { window.bbLowerData = bbLowerData; }
+    if(window.bbData || window.bbLowerData) updateBollingerCard();
+    updateAlignmentCard();
+
+    const dateLabel = results[0]?.date || 'today';
+    document.querySelector('.header div div:first-child').textContent = `DATA AS OF ${dateLabel}`;
+    document.querySelector('.header div div:last-child').style.color = '#22c55e';
+    document.querySelector('.header div div:last-child').textContent = 'LIVE DATA ✓';
+    return realMaData;
+  } catch(e) {
+    console.error('Data fetch error:', e);
+    setStatus('error');
+    return null;
+  }
+}
+
+function setStatus(s) {
+  const el = document.querySelector('.header div div:last-child');
+  if(s === 'loading') { el.style.color = '#eab308'; el.textContent = 'LOADING DATA...'; }
+  if(s === 'error')   { el.style.color = '#ef4444'; el.textContent = 'DATA ERROR — USING SIMULATED'; }
+}
+
+const simVals = {
+  3:   [12, 9,  61, 79, 92, 85, 6,  94, 40, 10, 32],
+  5:   [19, 15, 58, 74, 87, 80, 11, 91, 44, 17, 36],
+  10:  [28, 23, 54, 69, 81, 75, 18, 87, 48, 24, 41],
+  20:  [39, 32, 51, 64, 75, 70, 25, 82, 52, 31, 44],
+  50:  [50, 45, 54, 61, 68, 65, 37, 72, 56, 43, 51],
+  100: [57, 53, 58, 61, 64, 62, 50, 66, 60, 52, 59],
+  200: [65, 62, 64, 66, 67, 65, 61, 65, 64, 61, 64],
+};
+
+function calcSD(vals) {
+  const dec = vals.map(v=>v/100);
+  const mean = dec.reduce((a,b)=>a+b,0)/dec.length;
+  const variance = dec.reduce((s,v)=>s+Math.pow(v-mean,2),0)/dec.length;
+  return parseFloat((Math.sqrt(variance)*10).toFixed(2));
+}
+
+function sdColor(sd) {
+  if(sd>=2.0) return {label:"DANGER",  color:"#ef4444", bg:"#1a0404", desc:"DANGER — Sectors sharply diverging. Reduce longs. Stop buying dips. Consider shorts."};
+  if(sd>=1.5) return {label:"WARNING", color:"#f97316", bg:"#1a0a02", desc:"WARNING — Hidden weakness. Reduce size. Tighten stops. Only strongest sectors."};
+  if(sd>=1.0) return {label:"CAUTION", color:"#eab308", bg:"#1a1402", desc:"CAUTION — Rotation underway. Be selective. Smaller size. Leading sectors only."};
+  if(sd>=0.5) return {label:"CAUTION", color:"#eab308", bg:"#1a1402", desc:"CAUTION — Moderate divergence. Still selective. Watch for rotation."};
+  return              {label:"CALM",   color:"#22c55e", bg:"#021408", desc:"CALM — Broad participation. Follow momentum. Full size. Buy dips."};
+}
+
+function avgPct(vals, tickers) {
+  return tickers.reduce((s,t)=>{ const i=SECTORS.indexOf(t); return s+(i>=0?vals[i]:0); },0)/tickers.length;
+}
+
+function detectRegime(maData) {
+  const sd3   = maData.find(x=>x.ma===3).sd;
+  const sd5   = maData.find(x=>x.ma===5).sd;
+  const sd20  = maData.find(x=>x.ma===20).sd;
+  const sd50  = maData.find(x=>x.ma===50).sd;
+  const sd100 = maData.find(x=>x.ma===100).sd;
+  const sd200 = maData.find(x=>x.ma===200).sd;
+  const vals20 = maData.find(x=>x.ma===20).vals;
+  const vals5  = maData.find(x=>x.ma===5).vals;
+
+  const offAvg5  = avgPct(vals5,  OFFENSE);
+  const offAvg20 = avgPct(vals20, OFFENSE);
+
+  const chips = [
+    {label:`3D σ${sd3.toFixed(1)}`,    ...sdColor(sd3)},
+    {label:`5D σ${sd5.toFixed(1)}`,    ...sdColor(sd5)},
+    {label:`20D σ${sd20.toFixed(1)}`,  ...sdColor(sd20)},
+    {label:`50D σ${sd50.toFixed(1)}`,  ...sdColor(sd50)},
+    {label:`200D σ${sd200.toFixed(1)}`,...sdColor(sd200)},
+  ];
+
+  // OVERBOUGHT — σ very low short term + offense maxed out
+  if(sd3 < 0.5 && sd5 < 0.5 && offAvg5 > 75) {
+    return { color:"#f97316", bg:"#1a0a02",
+      regime:"OVERBOUGHT", sub:"Do not chase. Take profits.",
+      desc:"Everyone in the same trade. Participation maxed out — no new buyers left. σ very low short term means sectors all moving together. Large players likely selling into strength.",
+      chips,
+      rules:[
+        {if:"Opens strong + breadth stalls",   then:"TAKE PROFITS",    color:"#f97316"},
+        {if:"Opens weak + selling accelerates", then:"DO NOT BUY",     color:"#ef4444"},
+        {if:"Opens weak + lows hold",           then:"WAIT — no edge", color:"#eab308"},
+      ],
+      note:"σ very low = everyone crowded into same trade. Price not moving higher despite buyers = large players selling into strength. Bulls get trapped. Do not size up here."
+    };
+  }
+
+  // MOMENTUM — all timeframes healthy, broad participation
+  if(sd200 < 0.8 && sd100 < 1.0 && sd20 < 1.5 && sd5 < 1.5 && offAvg20 > 60) {
+    return { color:"#22c55e", bg:"#021408",
+      regime:"MOMENTUM", sub:"Follow strength. Full size.",
+      desc:"σ low across all timeframes. Sectors moving together. Offense above 60% on 20D. Broad participation confirmed. Breakouts extend and continuation works.",
+      chips,
+      rules:[
+        {if:"Opens strong + breadth expands",  then:"CONTINUATION", color:"#22c55e"},
+        {if:"Opens weak + lows do NOT expand", then:"BUY THE DIP",  color:"#38bdf8"},
+        {if:"Opens weak + lows expand",        then:"SMALL SHORT",  color:"#eab308"},
+      ],
+      note:"In trending markets each unit of volume gives more price movement. Enter on strength — moves extend. Size up but respect volatility."
+    };
+  }
+
+  // OVERSOLD — cross-sector avg 50D MA below 25% — Dr S fixed quartile threshold
+  const avg50now = window.breadth50Data?.current ?? null;
+  const weakMarketAlso = (sd3 >= 2.0 || sd5 >= 2.0) && sd20 >= 1.5;
+  if(avg50now !== null && avg50now <= 25) {
+    const warningText = weakMarketAlso
+      ? "WARNING — WEAK MARKET also active. Oversold in downtrend. Bounces fail more often. Reduce size. Wait for lows to stop expanding before buying."
+      : "In bull market correction — high probability bounce setup. Dr S edge: next 5 days ~4x normal returns. Buy weakness when lows stop expanding.";
+    return { color:"#22c55e", bg:"#021408",
+      regime:"OVERSOLD", sub:"Buy weakness. Fade panic.",
+      desc:"Cross-sector avg % above 50D MA below 25%. Dr Steenbarger bottom quartile — bounce edge active. " + warningText,
+      chips,
+      rules:[
+        {if:"Opens weak + lows do NOT expand",    then:"HIGH PROB REVERSAL", color:"#22c55e"},
+        {if:"Opens weak + lows still expanding",   then:"WAIT — more selling", color:"#eab308"},
+        {if:"Opens strong + breadth expands",      then:"CONFIRM LONG",       color:"#38bdf8"},
+      ],
+      note:weakMarketAlso
+        ? "Oversold in downtrend — Dr S warning: weakness can beget further weakness before bounce. Reduce size. Shorter holds. Wait for lows to stop expanding."
+        : "Oversold in healthy market — Dr S edge active. Next 5 days historically ~4x normal. Buy dips when lows stop expanding. Scale in carefully."
+    };
+  }
+
+  // WEAK MARKET — σ high short and medium term
+  if((sd3 >= 2.0 || sd5 >= 2.0) && sd20 >= 1.5 && sd200 < 1.5) {
+    return { color:"#ef4444", bg:"#1a0408",
+      regime:"WEAK MARKET", sub:"Short side bias. Do not buy dips.",
+      desc:"σ high short and medium term. Sectors sharply diverging for weeks. Breakouts fail. Breakdowns extend. Short side has edge today.",
+      chips,
+      rules:[
+        {if:"Opens weak + new lows expand",          then:"MOMENTUM SHORT",           color:"#ef4444"},
+        {if:"Opens strong + most sectors still red", then:"SELL THE BOUNCE",          color:"#f97316"},
+        {if:"Opens weak + new lows do NOT expand",   then:"FAILED BREAKDOWN — scalp", color:"#38bdf8"},
+      ],
+      note:"σ high = sectors diverging for weeks. Breakouts fail. Breakdowns extend. Look for VWAP reclaim shorts in weak sectors. Reduce size. Intraday only."
+    };
+  }
+
+  // ROTATION — default mixed signals
+  return { color:"#38bdf8", bg:"#0a1a2a",
+    regime:"CHOPPY", sub:"Be selective. Lead sectors only.",
+    desc:"Mixed σ signals. Some timeframes healthy, some not. Neither buyers nor sellers dominant. Breakouts work in leading sectors only — not broad market.",
+    chips,
+    rules:[
+      {if:"Opens strong + breadth expands",  then:"SMALL LONG — quick",  color:"#22c55e"},
+      {if:"Opens weak + lows expand",        then:"SMALL SHORT — quick", color:"#ef4444"},
+      {if:"Opens weak + lows hold",          then:"FADE — scalp only",   color:"#38bdf8"},
+    ],
+    note:"In rotational markets — moves reverse not extend. Fade buying and selling that is drying up. Smaller size, shorter holds, quicker exits. Follow leading sectors only."
+  };
+}
+
+const MAS = [3,5,10,20,50,100,200];
+let maData = MAS.map(ma=>({ ma, label:ma+"D", sd:calcSD(simVals[ma]), vals:simVals[ma] }));
+
+const histLabels = ["Feb23","Feb24","Feb25","Feb26","Mar02","Mar03","Mar04","Mar05","Mar06","Mar10","Mar11","Mar12"];
+const hist3D   = [1.20,1.45,1.90,2.30,2.60,2.90,3.50,3.10,2.80,3.60,3.20,3.42];
+const hist20D  = [0.82,0.97,1.21,1.45,1.71,1.89,2.24,2.06,1.81,2.37,2.14,1.93];
+const hist200D = [0.15,0.16,0.17,0.17,0.18,0.18,0.19,0.19,0.19,0.19,0.19,0.19];
+
+let selMA = 3;
+let barChartObj;
+
+function buildMAList() {
+  const el = document.getElementById('maList');
+  el.innerHTML = '';
+  maData.forEach((d,i) => {
+    const r = sdColor(d.sd);
+    const div = document.createElement('div');
+    div.className = 'ma-row'+(i===selMA?' active':'');
+    div.style.borderColor = i===selMA ? r.color+'40' : 'transparent';
+    div.innerHTML = `<span class="ma-name">${d.label}</span><span class="ma-sd" style="color:${r.color}">${d.sd.toFixed(2)}</span><span class="ma-badge" style="background:${r.color}20;color:${r.color};border:1px solid ${r.color}50">${r.label}</span>`;
+    div.onclick = ()=>{ selMA=i; update(); };
+    el.appendChild(div);
+  });
+}
+
+function buildSectors(vals) {
+  const sl = document.getElementById('sectorList');
+  sl.innerHTML = '';
+  const all = SECTORS.map((s,i)=>({ name:s, full:FULLNAMES[s], val:vals[i], color:vals[i]>=60?"#22c55e":vals[i]>=40?"#eab308":"#ef4444", isOffense:OFFENSE.includes(s) }));
+  sl.innerHTML += `<div class="group-label" style="color:#38bdf8">OFFENSE — RISK ON</div>`;
+  all.filter(s=>s.isOffense).sort((a,b)=>b.val-a.val).forEach(s=>{ sl.innerHTML+=sectorHtml(s); });
+  sl.innerHTML += `<div class="group-label" style="color:#a78bfa">DEFENSE — RISK OFF</div>`;
+  all.filter(s=>!s.isOffense).sort((a,b)=>b.val-a.val).forEach(s=>{ sl.innerHTML+=sectorHtml(s); });
+}
+
+function sectorHtml({name,full,val,color}) {
+  const stocks = TOPSTOCKS[name].split('\n').map(line => {
+    const [ticker, desc] = line.split(' → ');
+    return `<div style="display:flex;gap:6px;padding:2px 0;border-bottom:1px solid #1a253530;align-items:baseline">
+      <span style="font-size:10px;font-weight:700;color:#ffffff;min-width:36px">${ticker.trim()}</span>
+      <span style="font-size:9px;color:#aaccee;line-height:1.4">${desc ? '→ ' + desc.trim() : ''}</span>
+    </div>`;
+  }).join('');
+  return `<div class="sector-row" style="position:relative">
+    <div class="sector-top">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#ffffff;display:inline-block;cursor:pointer"
+          onmouseenter="document.querySelectorAll('.sector-tooltip').forEach(t=>t.style.display='none');this.querySelector('.sector-tooltip').style.display='block'"
+          onmouseleave="this.querySelector('.sector-tooltip').style.display='none'">
+          ${name}
+          <div class="sector-tooltip" style="display:none;position:absolute;left:0;top:100%;z-index:99;background:#0a0f1a;border:1px solid #1a2535;border-radius:6px;padding:10px 12px;min-width:240px;max-width:280px;box-shadow:0 4px 20px #000a;pointer-events:none">
+            <div style="font-size:9px;color:#60a5fa;letter-spacing:1px;font-weight:700;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #1a2535">${full.toUpperCase()} — TOP HOLDINGS</div>
+            ${stocks}
+          </div>
+        </div>
+        <div style="font-size:9px;color:#aaccee">${full}</div>
+      </div>
+      <span class="sector-val" style="color:${color}">${val}%</span>
+    </div>
+    <div class="bar-bg"><div class="bar-fill" style="width:${val}%;background:${color}"></div></div>
+  </div>`;
+}
+
+function update() {
+  buildMAList();
+  const d   = maData[selMA];
+  const r   = sdColor(d.sd);
+  const m20 = maData.find(x=>x.ma===20);
+  const r20 = sdColor(m20.sd);
+
+  document.getElementById('signalBox').style.background = r20.bg;
+  document.getElementById('signalBox').style.border = `1px solid ${r20.color}50`;
+  document.getElementById('signalBig').style.color = r20.color;
+  document.getElementById('signalBig').textContent = `σ ${m20.sd.toFixed(2)}`;
+  document.getElementById('signalLabel').style.color = r20.color;
+  document.getElementById('signalLabel').textContent = r20.label;
+
+  document.getElementById('interpBox').style.background = r.bg;
+  document.getElementById('interpBox').style.border = `1px solid ${r.color}50`;
+  document.getElementById('interpTitle').textContent = `SIGNAL · ${d.label}`;
+  document.getElementById('interpLabel').style.color = r.color;
+  document.getElementById('interpLabel').textContent = r.label;
+  document.getElementById('interpSd').style.color = r.color;
+  document.getElementById('interpSd').textContent = `σ ${d.sd.toFixed(2)}`;
+  document.getElementById('interpDesc').textContent = r.desc;
+  document.getElementById('barTitle').textContent = `% STOCKS ABOVE MA — ${d.label}`;
+  document.getElementById('sectorTitle').textContent = `SECTORS — ${d.label}`;
+  buildSectors(d.vals);
+
+  const cs = detectRegime(maData);
+  window.currentRegime = cs.regime;
+  document.getElementById('combinedBox').style.background = cs.bg;
+  document.getElementById('combinedBox').style.borderColor = cs.color;
+  document.getElementById('combinedRegime').style.color = cs.color;
+  document.getElementById('combinedRegime').textContent = cs.regime;
+  document.getElementById('combinedSub').style.color = cs.color;
+  document.getElementById('combinedSub').textContent = cs.sub;
+  document.getElementById('combinedDesc').textContent = cs.desc;
+  document.getElementById('drNote').textContent = cs.note;
+  document.getElementById('tfBar').innerHTML = cs.chips.map(c=>
+    `<span class="tf-chip" style="background:${c.color}20;color:${c.color};border:1px solid ${c.color}50">${c.label}</span>`
+  ).join('');
+  cs.rules.forEach((rule,i)=>{
+    document.getElementById(`ruleIf${i+1}`).textContent = `IF ${rule.if}`;
+    const th = document.getElementById(`ruleThen${i+1}`);
+    th.textContent = rule.then;
+    th.style.background = rule.color+'20';
+    th.style.color = rule.color;
+    th.style.border = `1px solid ${rule.color}50`;
+  });
+
+  const sorted = SECTORS.map((s,i)=>({name:s,val:d.vals[i],color:d.vals[i]>=60?"#22c55e":d.vals[i]>=40?"#eab308":"#ef4444"})).sort((a,b)=>b.val-a.val);
+  if(barChartObj){
+    barChartObj.data.labels = sorted.map(s=>s.name);
+    barChartObj.data.datasets[0].data = sorted.map(s=>s.val);
+    barChartObj.data.datasets[0].backgroundColor = sorted.map(s=>s.color+'cc');
+    barChartObj.update();
+  }
+}
+
+const hctx = document.getElementById('histChart').getContext('2d');
+new Chart(hctx,{
+  type:'line',
+  data:{
+    labels:histLabels,
+    datasets:[
+      {label:'3D',  data:hist3D,   borderColor:'#00ffff', borderWidth:2, pointRadius:0, tension:0.3, fill:false},
+      {label:'20D', data:hist20D,  borderColor:'#7b2fff', borderWidth:2, pointRadius:0, tension:0.3, fill:false},
+      {label:'50D', data:hist20D.map(v=>v*0.75), borderColor:'#1e90ff', borderWidth:2, pointRadius:0, tension:0.3, fill:false},
+      {label:'200D',data:hist200D, borderColor:'#ff0055', borderWidth:2, pointRadius:2, tension:0.3, fill:false},
+      {label:'',data:histLabels.map(()=>2.0), borderColor:'#ffffff30', borderWidth:1, borderDash:[4,3], pointRadius:0, fill:false},
+      {label:'',data:histLabels.map(()=>1.5), borderColor:'#ffffff20', borderWidth:1, borderDash:[3,3], pointRadius:0, fill:false},
+      {label:'',data:histLabels.map(()=>1.0), borderColor:'#ffffff15', borderWidth:1, borderDash:[2,3], pointRadius:0, fill:false},
+      {label:'',data:histLabels.map(()=>0.5), borderColor:'#ffffff10', borderWidth:1, borderDash:[2,3], pointRadius:0, fill:false},
+    ]
+  },
+  options:{
+    responsive:true,
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{label:c=>`${c.dataset.label} σ ${c.raw.toFixed(2)}`}, backgroundColor:'#0a0f1a', titleColor:'#ffffff', bodyColor:'#ffffff', borderColor:'#1a2535', borderWidth:1}
+    },
+    scales:{
+      x:{grid:{color:'#1a253540'}, ticks:{color:'#ffffff', font:{size:9}}},
+      y:{grid:{color:'#1a253540'}, ticks:{color:'#ffffff', font:{size:9}, callback:v=>v.toFixed(1)}, min:0, max:3.8}
+    }
+  }
+});
+
+const m20i = maData.find(x=>x.ma===20);
+const s0 = SECTORS.map((s,i)=>({name:s,val:m20i.vals[i],color:m20i.vals[i]>=60?"#22c55e":m20i.vals[i]>=40?"#eab308":"#ef4444"})).sort((a,b)=>b.val-a.val);
+const bctx = document.getElementById('barChart').getContext('2d');
+barChartObj = new Chart(bctx,{
+  type:'bar',
+  data:{labels:s0.map(s=>s.name), datasets:[{data:s0.map(s=>s.val), backgroundColor:s0.map(s=>s.color+'cc'), borderRadius:3}]},
+  options:{
+    responsive:true,
+    plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.raw}%`}, backgroundColor:'#0a0f1a', titleColor:'#ffffff', bodyColor:'#ffffff', borderColor:'#1a2535', borderWidth:1}},
+    scales:{
+      x:{grid:{display:false}, ticks:{color:'#ffffff', font:{size:9}}},
+      y:{grid:{color:'#1a253540'}, ticks:{color:'#ffffff', font:{size:9}, callback:v=>v+'%'}, min:0, max:100}
+    }
+  }
+});
+
+// ── 50D BREADTH QUARTILE DISPLAY — Dr Steenbarger method ────────
+// Fixed thresholds directly from Dr S post:
+// Above 75% = top quartile = overbought — next 5 days subnormal +0.11%
+// Below 25% = bottom quartile = oversold — next 5 days edge active ~4x normal
+function updateBreadth50Card() {
+  const d = window.breadth50Data;
+  if(!d || d.current === null) return;
+  const card  = document.getElementById('breadth50Card');
+  const label = document.getElementById('breadth50Label');
+  const sub   = document.getElementById('breadth50Sub');
+  const desc  = document.getElementById('breadth50Desc');
+  const val   = d.current;
+
+  if(val >= 75) {
+    card.style.background = '#1a0a02';
+    card.style.border     = '1px solid #f9731650';
+    label.style.color     = '#f97316';
+    label.textContent     = val + '%  TOP QUARTILE';
+    sub.style.color       = '#f97316';
+    sub.textContent       = 'OVERBOUGHT — NEXT 5 DAYS SUBNORMAL';
+    desc.textContent      = 'Above 75% — Dr S top quartile. Next 5 day SPY returns average only +0.11%. Do not chase. Short term pullback likely. Long term pullbacks are still buying opportunities.';
+  } else if(val <= 25) {
+    card.style.background = '#021408';
+    card.style.border     = '1px solid #22c55e50';
+    label.style.color     = '#22c55e';
+    label.textContent     = val + '%  BOTTOM QUARTILE';
+    sub.style.color       = '#22c55e';
+    sub.textContent       = 'OVERSOLD — BOUNCE EDGE ACTIVE';
+    desc.textContent      = 'Below 25% — Dr S bottom quartile. Next 5 day SPY returns historically ~4x normal. Mean reversion setup. In bull market = buy. In downtrend = wait for lows to stop expanding.';
+  } else if(val >= 50) {
+    card.style.background = '#0a1a2a';
+    card.style.border     = '1px solid #38bdf830';
+    label.style.color     = '#38bdf8';
+    label.textContent     = val + '%  UPPER HALF';
+    sub.style.color       = '#38bdf8';
+    sub.textContent       = 'HEALTHY — APPROACHING OVERBOUGHT';
+    desc.textContent      = 'Between 50% and 75%. Market healthy but not yet extreme. No special edge. Watch for push above 75% which reduces next 5 day returns significantly.';
+  } else {
+    card.style.background = '#1a0a02';
+    card.style.border     = '1px solid #f9731630';
+    label.style.color     = '#f97316';
+    label.textContent     = val + '%  LOWER HALF';
+    sub.style.color       = '#f97316';
+    sub.textContent       = 'WEAK — WATCHING FOR OVERSOLD';
+    desc.textContent      = 'Between 25% and 50%. Below average breadth but not yet in oversold quartile. No edge yet. Wait for drop below 25% for the bounce edge to activate.';
+  }
+}
+
+// ── BOLLINGER BAND BREADTH DISPLAY — Dr Steenbarger method ─────
+// From Dr S post Jan 19 2026:
+// When very few NYSE stocks close above upper Bollinger Band (lowest quartile)
+// next 30 days in SPY = 3x average returns
+// Lowest quartile threshold calculated from full history 2004-today
+function updateBollingerCard() {
+  const d = window.bbData;
+  if(!d || d.current === null) return;
+  const card  = document.getElementById('bollingerCard');
+  const label = document.getElementById('bollingerLabel');
+  const sub   = document.getElementById('bollingerSub');
+  const desc  = document.getElementById('bollingerDesc');
+  const qline = document.getElementById('bollingerQuartile');
+  const val   = d.current;
+  const q25   = d.q25;
+  const q75   = d.q75;
+
+  if(val <= q25) {
+    card.style.background = '#021408';
+    card.style.border     = '1px solid #22c55e50';
+    label.style.color     = '#22c55e';
+    label.textContent     = val + '%  LOWEST QUARTILE';
+    sub.style.color       = '#22c55e';
+    sub.textContent       = 'UPSIDE EDGE — NEXT 30 DAYS 3X NORMAL';
+    desc.textContent      = 'Very few NYSE stocks above upper Bollinger Band. Dr S research: next 30 days SPY historically 3x average returns of remainder of sample. Stocks pulled back from extremes. Buy weakness when confirmed.';
+  } else if(val >= q75) {
+    card.style.background = '#1a0a02';
+    card.style.border     = '1px solid #f9731650';
+    label.style.color     = '#f97316';
+    label.textContent     = val + '%  HIGHEST QUARTILE';
+    sub.style.color       = '#f97316';
+    sub.textContent       = 'OVERBOUGHT — SUBNORMAL RETURNS';
+    desc.textContent      = 'Many NYSE stocks above upper Bollinger Band. Market stretched to upside. Dr S research: next 30 days returns subnormal. Do not chase. Take profits.';
+  } else if(val <= (q25 + q75) / 2) {
+    card.style.background = '#0a0f1a';
+    card.style.border     = '1px solid #f9731630';
+    label.style.color     = '#f97316';
+    label.textContent     = val + '%  LOWER HALF';
+    sub.style.color       = '#f97316';
+    sub.textContent       = 'BELOW AVERAGE — WATCHING';
+    desc.textContent      = 'Below median but not yet lowest quartile. No strong edge yet. Watch for drop into lowest quartile for the 3x return setup.';
+  } else {
+    card.style.background = '#0a0f1a';
+    card.style.border     = '1px solid #38bdf830';
+    label.style.color     = '#38bdf8';
+    label.textContent     = val + '%  UPPER HALF';
+    sub.style.color       = '#38bdf8';
+    sub.textContent       = 'ABOVE AVERAGE — NEUTRAL';
+    desc.textContent      = 'Above median. Market healthy short term. No edge either direction from Bollinger Band breadth alone.';
+  }
+  qline.textContent = `Historical quartiles (2004–today): Q25 = ${q25}%  |  Q75 = ${q75}%  |  Today = ${val}%`;
+}
+
+// ── SIGNAL ALIGNMENT — confirmed research only ─────────────────
+function updateAlignmentCard() {
+  const score  = document.getElementById('alignmentScore');
+  const sigs   = document.getElementById('alignmentSignals');
+  const title  = document.getElementById('alignmentTitle');
+
+  const b50    = window.breadth50Data?.current ?? null;
+  const mmfd   = window.maData ? window.maData.find(x=>x.ma===5)?.vals : null;
+  const mmfdVal = mmfd ? mmfd.reduce((a,b)=>a+b,0)/mmfd.length : null;
+  const bb     = window.bbData?.current ?? null;
+  const bbQ25  = window.bbData?.q25 ?? null;
+
+  let count = 0;
+  let lines = [];
+
+  if(b50 !== null && b50 <= 25) {
+    count++;
+    lines.push('✓ 50D BREADTH BELOW 25% — next 5 days ~4x normal');
+  } else if(b50 !== null) {
+    lines.push('✗ 50D BREADTH ' + b50 + '% — not in oversold zone');
+  }
+
+  if(bb !== null && bbQ25 !== null && bb <= bbQ25) {
+    count++;
+    lines.push('✓ BB BREADTH LOWEST QUARTILE — next 30 days 3x normal');
+  } else if(bb !== null) {
+    lines.push('✗ BB BREADTH ' + bb + '% — not in lowest quartile');
+  }
+
+  if(mmfdVal !== null && mmfdVal <= 20) {
+    count++;
+    lines.push('✓ MMFD BELOW 20% — oversold edge active');
+  } else if(mmfdVal !== null) {
+    lines.push('✗ MMFD ' + Math.round(mmfdVal) + '% — not oversold');
+  }
+
+  title.style.display = 'block';
+  score.style.display = 'block';
+  sigs.style.display  = 'block';
+
+  if(count === 3) {
+    score.style.color = '#22c55e';
+    score.textContent = '3 SIGNALS ALIGNED — REVERSAL EDGE ACTIVE';
+  } else if(count === 2) {
+    score.style.color = '#eab308';
+    score.textContent = '2 SIGNALS ALIGNED — MODERATE EDGE';
+  } else if(count === 1) {
+    score.style.color = '#aaccee';
+    score.textContent = '1 SIGNAL — WAIT FOR CONFIRMATION';
+  } else {
+    score.style.color = '#aaccee';
+    score.textContent = 'NO ALIGNMENT — WAIT';
+  }
+
+  sigs.innerHTML = lines.map(l => `<div style="color:${l.startsWith('✓') ? '#22c55e' : '#ef444480'}">${l}</div>`).join('');
+}
+
+update();
+
+(async () => {
+  const realData = await loadRealData();
+  if(realData) {
+    maData = realData;
+    update();
+  }
+})();
+</script>
+</body>
+</html>
