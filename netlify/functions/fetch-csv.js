@@ -6,7 +6,7 @@ exports.handler = async function(event) {
   if (!url) return { statusCode: 400, body: 'Missing url parameter' };
  
   try {
-    const text = await new Promise((resolve, reject) => {
+    const result = await new Promise((resolve, reject) => {
       const lib = url.startsWith('https') ? https : http;
       const options = {
         headers: {
@@ -21,9 +21,17 @@ exports.handler = async function(event) {
       lib.get(url, options, (res) => {
         let data = '';
         res.on('data', chunk => data += chunk);
-        res.on('end', () => resolve(data));
-      }).on('error', reject);
+        res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: data }));
+      }).on('error', (e) => reject(e));
     });
+ 
+    if(result.status !== 200) {
+      return {
+        statusCode: 500,
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: `MarketCharts returned status ${result.status}. Headers: ${JSON.stringify(result.headers)}. Body: ${result.body.substring(0, 500)}`
+      };
+    }
  
     return {
       statusCode: 200,
@@ -31,10 +39,14 @@ exports.handler = async function(event) {
         'Content-Type': 'text/plain',
         'Access-Control-Allow-Origin': '*',
       },
-      body: text
+      body: result.body
     };
   } catch (e) {
-    return { statusCode: 500, body: `Error: ${e.message}` };
+    return { 
+      statusCode: 500, 
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: `Error: ${e.message} | Stack: ${e.stack}` 
+    };
   }
 };
  
