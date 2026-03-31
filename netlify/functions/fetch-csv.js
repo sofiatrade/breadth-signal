@@ -1,11 +1,20 @@
+const https = require('https');
+const http  = require('http');
+ 
 exports.handler = async function(event) {
   const url = event.queryStringParameters?.url;
   if (!url) return { statusCode: 400, body: 'Missing url parameter' };
-
+ 
   try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Failed: ${response.status}`);
-    const text = await response.text();
+    const text = await new Promise((resolve, reject) => {
+      const lib = url.startsWith('https') ? https : http;
+      lib.get(url, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => resolve(data));
+      }).on('error', reject);
+    });
+ 
     return {
       statusCode: 200,
       headers: {
@@ -18,3 +27,4 @@ exports.handler = async function(event) {
     return { statusCode: 500, body: `Error: ${e.message}` };
   }
 };
+ 
