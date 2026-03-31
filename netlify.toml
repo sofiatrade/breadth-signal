@@ -1,7 +1,7 @@
 [build]
   functions = "netlify/functions"
 
-[functions]
+[functions."fetch-csv"]
   timeout = 26
 
 [[headers]]
