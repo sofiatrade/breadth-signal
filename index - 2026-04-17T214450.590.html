@@ -1,0 +1,2151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sector Breadth Divergence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #060810; color: #ffffff; font-family: 'Courier New', monospace; font-size: 13px; padding: 16px 20px; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+.header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1a2535; padding-bottom: 12px; margin-bottom: 16px; }
+.header h1 { font-family: Impact, sans-serif; font-size: 24px; color: #ffffff; letter-spacing: 2px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; align-items: start; }
+.card { background: #0a0f1a; border: 1px solid #1a2535; border-radius: 8px; padding: 14px; }
+.card-title { font-size: 10px; color: #ffffff; letter-spacing: 2px; margin-bottom: 12px; font-weight: 700; }
+.signal-box { border-radius: 8px; padding: 16px; margin-bottom: 14px; }
+.signal-big { font-family: Impact, sans-serif; font-size: 56px; line-height: 1; }
+.signal-label { font-size: 14px; font-weight: 700; margin-top: 6px; letter-spacing: 2px; }
+.ma-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 8px; margin-bottom: 4px; border-radius: 5px; cursor: pointer; border: 1px solid transparent; transition: all .15s; }
+.ma-row:hover { background: #1a2535; }
+.ma-row.active { background: #1a2535; }
+.ma-name { color: #ffffff; font-size: 12px; width: 42px; font-weight: 700; }
+.ma-sd { font-size: 20px; font-weight: 700; }
+.ma-badge { font-size: 9px; padding: 3px 7px; border-radius: 2px; font-weight: 700; }
+.divider { border-top: 1px solid #1a2535; margin: 12px 0; }
+.level-row { display: flex; justify-content: space-between; margin-bottom: 7px; font-size: 11px; }
+.regime-box { border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid; }
+.regime-name { font-size: 11px; font-weight: 700; letter-spacing: 1px; margin-bottom: 3px; }
+.regime-cond { font-size: 11px; color: #ffffff; margin-bottom: 4px; line-height: 1.5; }
+.regime-text { font-size: 11px; line-height: 1.6; color: #ffffff; }
+.scenario { font-size: 10px; margin-top: 5px; padding-top: 5px; border-top: 1px solid #ffffff15; line-height: 1.8; color: #ffffff; }
+.scenario span { font-weight: 700; }
+.combined-box { border-radius: 8px; padding: 14px; margin-bottom: 14px; border: 2px solid; }
+.combined-title { font-size: 10px; letter-spacing: 2px; font-weight: 700; margin-bottom: 10px; color: #ffffff; }
+.combined-regime { font-family: Impact, sans-serif; font-size: 26px; margin-bottom: 6px; letter-spacing: 1px; }
+.combined-sub { font-size: 11px; font-weight: 700; margin-bottom: 8px; letter-spacing: 1px; }
+.combined-desc { font-size: 11px; line-height: 1.8; color: #ffffff; margin-bottom: 12px; }
+.tf-bar { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+.tf-chip { font-size: 9px; padding: 3px 8px; border-radius: 2px; font-weight: 700; }
+.intraday-title { font-size: 10px; letter-spacing: 2px; color: #ffffff; margin-bottom: 8px; font-weight: 700; border-top: 1px solid #ffffff20; padding-top: 10px; }
+.rule-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; font-size: 10px; gap: 8px; }
+.rule-if { color: #ffffff; flex: 1; line-height: 1.6; font-size: 11px; }
+.rule-then { font-size: 9px; padding: 2px 7px; border-radius: 2px; font-weight: 700; white-space: nowrap; }
+.dr-note { font-size: 10px; color: #ffffff; margin-top: 10px; padding-top: 8px; border-top: 1px solid #ffffff15; line-height: 1.7; font-style: italic; }
+.group-label { font-size: 9px; letter-spacing: 2px; font-weight: 700; padding: 4px 0 6px 0; margin-top: 8px; border-bottom: 1px solid #1a2535; margin-bottom: 8px; }
+.sector-row { margin-bottom: 10px; }
+.sector-top { display: flex; justify-content: space-between; margin-bottom: 2px; align-items: flex-start; }
+.sector-val { font-size: 11px; font-weight: 700; }
+.bar-bg { height: 5px; background: #1a2535; border-radius: 2px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 2px; }
+.interp-label { font-family: Impact, sans-serif; font-size: 40px; margin-bottom: 6px; letter-spacing: 1px; }
+.interp-sd { font-family: Impact, sans-serif; font-size: 22px; margin-bottom: 10px; }
+.interp-desc { font-size: 12px; line-height: 2.0; color: #ffffff; }
+.footer { text-align: center; margin-top: 14px; font-size: 9px; color: #4a6a8a; letter-spacing: 2px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>SECTOR BREADTH DIVERGENCE</h1>
+  <div style="text-align:right;font-size:10px;color:#aaccee">
+    <div>DATA AS OF 2026-03-12</div>
+    <div style="margin-top:3px;color:#f97316">SIMULATED PREVIEW</div>
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- LEFT -->
+  <div>
+    <div class="signal-box" id="signalBox">
+      <div class="card-title">TODAY · 20D MA</div>
+      <div class="signal-big" id="signalBig">σ –</div>
+      <div class="signal-label" id="signalLabel">–</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">STD DEVIATION ALL TIMEFRAMES</div>
+      <div id="maList"></div>
+
+      <div class="divider"></div>
+      <div class="card-title">REFERENCE LEVELS</div>
+      <div class="level-row"><span style="color:#ef4444;font-weight:700">σ &gt; 2.0</span><span style="color:#ef4444;font-weight:700">DANGER</span></div>
+      <div class="level-row"><span style="color:#f97316;font-weight:700">σ &gt; 1.5</span><span style="color:#f97316;font-weight:700">WARNING</span></div>
+      <div class="level-row"><span style="color:#eab308;font-weight:700">σ &gt; 1.0</span><span style="color:#eab308;font-weight:700">CAUTION</span></div>
+      <div class="level-row"><span style="color:#22c55e;font-weight:700">σ &lt; 0.5</span><span style="color:#22c55e;font-weight:700">CALM</span></div>
+
+      <div class="divider"></div>
+      <div class="card-title">YOUR 4 REGIMES — DR STEENBARGER METHOD</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+
+      <!-- TRENDING -->
+      <div class="regime-box" style="background:#02140820;border-color:#22c55e40">
+        <div class="regime-name" style="color:#22c55e">● MOMENTUM</div>
+        <div class="regime-cond" style="color:#22c55e;font-weight:700;margin-bottom:4px">Follow strength. Full size.</div>
+        <div class="regime-cond">σ low all timeframes. Offense above 60% on 20D. Sectors moving together. Breakouts extend and work.</div>
+        <div class="scenario">
+          Opens strong + breadth expands → <span style="color:#22c55e">TRADE CONTINUATION</span><br>
+          Opens weak + lows do NOT expand → <span style="color:#38bdf8">BUY THE DIP — bull intact</span><br>
+          Opens weak + lows expand → <span style="color:#eab308">SMALL SHORT — expect bounce</span>
+        </div>
+      </div>
+
+      <!-- CROWDED -->
+      <div class="regime-box" style="background:#1a0a0220;border-color:#f9731640">
+        <div class="regime-name" style="color:#f97316">● OVERBOUGHT</div>
+        <div class="regime-cond" style="color:#f97316;font-weight:700;margin-bottom:4px">Do not chase. Take profits.</div>
+        <div class="regime-cond">σ very low short term. Offense above 75% on 5D. Everyone in same trade. Participation maxed out — no new buyers left.</div>
+        <div class="scenario">
+          Opens strong + breadth stalls → <span style="color:#f97316">TAKE PROFITS — trap forming</span><br>
+          Opens weak + selling starts → <span style="color:#ef4444">DO NOT BUY — large players exiting</span><br>
+          Opens weak + lows hold → <span style="color:#eab308">WAIT — no edge yet</span>
+        </div>
+      </div>
+
+      <!-- ROTATION -->
+      <div class="regime-box" style="background:#0a0a0a20;border-color:#38bdf840">
+        <div class="regime-name" style="color:#38bdf8">● CHOPPY</div>
+        <div class="regime-cond" style="color:#38bdf8;font-weight:700;margin-bottom:4px">Be selective. Lead sectors only.</div>
+        <div class="regime-cond">Mixed σ signals. Some timeframes healthy, some not. Neither buyers nor sellers dominant. Breakouts work in leaders only.</div>
+        <div class="scenario">
+          Opens strong + breadth expands → <span style="color:#22c55e">SMALL LONG — quick profits</span><br>
+          Opens weak + lows expand → <span style="color:#ef4444">SMALL SHORT — quick profits</span><br>
+          Opens weak + lows hold → <span style="color:#38bdf8">FADE — scalp only</span>
+        </div>
+      </div>
+
+      <!-- WEAK MARKET -->
+      <div class="regime-box" style="background:#1a040820;border-color:#ef444440">
+        <div class="regime-name" style="color:#ef4444">● WEAK MARKET</div>
+        <div class="regime-cond" style="color:#ef4444;font-weight:700;margin-bottom:4px">Reduce size. Short side bias.</div>
+        <div class="regime-cond">σ high short and medium term. Sectors sharply diverging for weeks. Breakouts fail. Breakdowns extend.</div>
+        <div class="scenario">
+          Opens weak + new lows expand → <span style="color:#ef4444">MOMENTUM SHORT</span><br>
+          Opens strong + most sectors still red → <span style="color:#f97316">SELL THE BOUNCE</span><br>
+          Opens weak + lows do NOT expand → <span style="color:#38bdf8">FAILED BREAKDOWN — scalp only</span>
+        </div>
+      </div>
+
+      <!-- OVERSOLD -->
+      <div class="regime-box" style="background:#02140820;border-color:#22c55e40;grid-column:1/-1">
+        <div class="regime-name" style="color:#22c55e">● OVERSOLD</div>
+        <div class="regime-cond" style="color:#22c55e;font-weight:700;margin-bottom:4px">Buy weakness. Fade panic.</div>
+        <div class="regime-cond">Cross-sector avg % above 50D MA below 25%. Stocks stretched too far down. Bounce edge active per Dr Steenbarger — next 5 days historically ~4x normal returns.</div>
+        <div class="scenario">
+          Opens weak + lows do NOT expand → <span style="color:#22c55e">HIGH PROB REVERSAL — buy now</span><br>
+          Opens weak + lows still expanding → <span style="color:#eab308">WAIT — not yet, more selling coming</span><br>
+          Opens strong + breadth expands → <span style="color:#38bdf8">CONFIRM LONG — add size</span><br>
+          <span style="color:#ef4444;font-weight:700">WARNING — if WEAK MARKET also active: oversold in downtrend. Bounces fail more often. Reduce size. Wait for lows to stop expanding first.</span>
+        </div>
+      </div>
+
+      </div>
+
+      <div class="divider"></div>
+      <div style="font-size:9px;color:#aaccee;line-height:1.8;font-style:italic">
+        "In volatile markets — size DOWN. Volatility is already sizing up your positions. The faster the market moves, the slower you should make yourself to adapt."
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MIDDLE -->
+  <div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title">
+        σ HISTORY &nbsp;
+        <span style="color:#00ffff">— 3D</span> &nbsp;
+        <span style="color:#7b2fff">— 20D</span> &nbsp;
+        <span style="color:#1e90ff">— 50D</span> &nbsp;
+        <span style="color:#ff0055">— 200D</span>
+      </div>
+      <canvas id="histChart" height="160"></canvas>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title" id="barTitle">% STOCKS ABOVE MA — 20D</div>
+      <canvas id="barChart" height="160"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title" id="sectorTitle">SECTORS — 20D</div>
+      <div id="sectorList"></div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT -->
+  <div>
+    <div class="combined-box" id="combinedBox">
+      <div class="combined-title">TODAY'S REGIME</div>
+      <div class="tf-bar" id="tfBar"></div>
+      <div class="combined-regime" id="combinedRegime">–</div>
+      <div class="combined-sub" id="combinedSub">–</div>
+      <div class="combined-desc" id="combinedDesc">–</div>
+      <div id="todayStackBox" style="margin-top:10px;padding:8px 10px;border-radius:4px;background:#0a0f1a;border-left:3px solid #6b7a8f;font-size:10px;line-height:1.7;display:none">
+        <div style="font-size:9px;color:#6b7a8f;letter-spacing:1px;font-weight:700;margin-bottom:4px">TODAY'S STACK — DR S ALIGNED</div>
+        <div id="todayStackLines" style="color:#ffffff;margin-bottom:6px"></div>
+        <div id="todayStackAction" style="font-size:10px;font-weight:700;letter-spacing:1px;padding-top:5px;border-top:1px solid #ffffff20"></div>
+      </div>
+      <div class="intraday-title">INTRADAY RULES — TODAY</div>
+      <div class="rule-row">
+        <span class="rule-if" id="ruleIf1">–</span>
+        <span class="rule-then" id="ruleThen1">–</span>
+      </div>
+      <div class="rule-row">
+        <span class="rule-if" id="ruleIf2">–</span>
+        <span class="rule-then" id="ruleThen2">–</span>
+      </div>
+      <div class="rule-row">
+        <span class="rule-if" id="ruleIf3">–</span>
+        <span class="rule-then" id="ruleThen3">–</span>
+      </div>
+      <div class="dr-note" id="drNote">–</div>
+
+      <!-- ROTATION BREADTH — Dr Steenbarger method -->
+      <div class="intraday-title">ROTATION BREADTH</div>
+      <div id="rotationNumbers" style="font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:6px;line-height:2.0"></div>
+      <div id="rotationFullTable" style="font-size:10px;margin-bottom:8px"></div>
+      <div id="rotationSectors" style="font-size:10px;line-height:2.0;margin-bottom:6px"></div>
+      <div id="rotationText" style="font-size:11px;color:#aaccee;line-height:1.8"></div>
+
+      <div class="intraday-title" id="alignmentTitle" style="display:none">SIGNAL ALIGNMENT</div>
+      <div id="alignmentExplainer" style="font-size:9px;color:#6b7a8f;line-height:1.6;margin-bottom:6px;font-style:italic;display:none">Dr S stacking: (1) same-direction stack = high conviction setup. (2) conflicting stack = wait, no edge.</div>
+      <div id="alignmentScore" style="font-size:11px;font-weight:700;margin-bottom:6px;letter-spacing:1px;display:none"></div>
+      <div id="alignmentSignals" style="font-size:9px;line-height:1.9;color:#aaccee;display:none"></div>
+
+      <!-- DR STEENBARGER FRAMEWORK — static reference of confirmed edges -->
+      <div class="intraday-title" style="margin-top:14px">DR STEENBARGER FRAMEWORK</div>
+      <div style="font-size:10px;line-height:1.7;color:#ffffff">
+
+        <div style="margin-bottom:8px;padding:6px 8px;background:#0a1a2a;border-left:3px solid #22c55e;border-radius:2px">
+          <div style="font-size:9px;color:#22c55e;letter-spacing:1px;font-weight:700;margin-bottom:2px">50D BREADTH QUARTILE — PRIMARY EDGE</div>
+          <div style="color:#aaccee">Top Q &gt;75% → next 5 days +0.11% (subnormal). Do not chase.</div>
+          <div style="color:#aaccee">Bottom Q &lt;25% → next 5 days ~4x normal. Bounce edge active.</div>
+          <div style="color:#22c55e;margin-top:3px;font-weight:700">Dual mindset: after strong 50D breadth, pullbacks on 50-day horizon are meant to be bought. Traders bail and miss the bounce.</div>
+        </div>
+
+        <div style="margin-bottom:8px;padding:6px 8px;background:#0a1a2a;border-left:3px solid #38bdf8;border-radius:2px">
+          <div style="font-size:9px;color:#38bdf8;letter-spacing:1px;font-weight:700;margin-bottom:2px">200D BREADTH QUARTILE — STRUCTURE</div>
+          <div style="color:#aaccee">Bottom Q &lt;25% → next 10 days SPY +1.32% (strongest long-term bounce).</div>
+          <div style="color:#aaccee">Top Q &gt;75% → next 10 days SPY -0.04% (structural overbought).</div>
+        </div>
+
+        <div style="margin-bottom:8px;padding:6px 8px;background:#0a1a2a;border-left:3px solid #a78bfa;border-radius:2px">
+          <div style="font-size:9px;color:#a78bfa;letter-spacing:1px;font-weight:700;margin-bottom:2px">5D + 100D CONTEXT RULE</div>
+          <div style="color:#aaccee">5D low + 100D low → next 10 days +1.00% (max bounce edge).</div>
+          <div style="color:#aaccee">5D low + 100D high → next 10 days +0.38% (just a dip).</div>
+        </div>
+
+        <div style="margin-bottom:8px;padding:6px 8px;background:#0a1a2a;border-left:3px solid #f97316;border-radius:2px">
+          <div style="font-size:9px;color:#f97316;letter-spacing:1px;font-weight:700;margin-bottom:2px">σ DIVERGENCE — REGIME VOLATILITY</div>
+          <div style="color:#aaccee">σ &gt;2.0 = DANGER / sectors diverging / breakouts fail.</div>
+          <div style="color:#aaccee">σ 1.5–2.0 = WARNING / hidden weakness.</div>
+          <div style="color:#aaccee">σ &lt;0.5 = CALM / broad participation / full size.</div>
+        </div>
+
+        <div style="padding:6px 8px;background:#1a1402;border-left:3px solid #eab308;border-radius:2px">
+          <div style="font-size:9px;color:#eab308;letter-spacing:1px;font-weight:700;margin-bottom:2px">DR S PRINCIPLE — VOLATILITY SIZING</div>
+          <div style="color:#ffffff;font-style:italic">"In volatile markets — size DOWN. Volatility is already sizing up your positions. The faster the market moves, the slower you should make yourself to adapt."</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px" id="interpBox">
+      <div class="card-title" id="interpTitle">SIGNAL · CLICK A TIMEFRAME</div>
+      <div class="interp-label" id="interpLabel">–</div>
+      <div class="interp-sd" id="interpSd"></div>
+      <div class="interp-desc" id="interpDesc">Click any MA timeframe on the left.</div>
+    </div>
+
+    <!-- 50D BREADTH QUARTILE — Dr Steenbarger method -->
+    <div class="card" style="margin-bottom:14px" id="breadth50Card">
+      <div class="card-title">50D BREADTH QUARTILE</div>
+      <div id="breadth50Label" style="font-family:Impact,sans-serif;font-size:28px;letter-spacing:1px;margin-bottom:4px">–</div>
+      <div id="breadth50Sub" style="font-size:11px;font-weight:700;margin-bottom:8px;letter-spacing:1px">–</div>
+      <div id="breadth50Desc" style="font-size:10px;line-height:1.8;color:#ffffff">Loading historical data...</div>
+    </div>
+
+    <!-- BOLLINGER BAND BREADTH — Dr Steenbarger method -->
+    <div class="card" style="margin-bottom:14px" id="bollingerCard">
+      <div class="card-title">NYSE BOLLINGER BAND BREADTH</div>
+      <div id="bollingerLabel" style="font-family:Impact,sans-serif;font-size:28px;letter-spacing:1px;margin-bottom:4px">–</div>
+      <div id="bollingerSub" style="font-size:11px;font-weight:700;margin-bottom:8px;letter-spacing:1px">–</div>
+      <div id="bollingerDesc" style="font-size:10px;line-height:1.8;color:#ffffff">Loading...</div>
+      <div id="bollingerQuartile" style="font-size:9px;color:#aaccee;margin-top:6px;line-height:1.6;font-style:italic"></div>
+    </div>
+
+    <!-- 5D BREADTH QUARTILE — Dr Steenbarger method -->
+    <div class="card" style="margin-bottom:14px" id="breadth5Card">
+      <div class="card-title">5D BREADTH QUARTILE</div>
+      <div id="breadth5Label" style="font-family:Impact,sans-serif;font-size:28px;letter-spacing:1px;margin-bottom:4px">–</div>
+      <div id="breadth5Sub" style="font-size:11px;font-weight:700;margin-bottom:8px;letter-spacing:1px">–</div>
+      <div id="breadth5Desc" style="font-size:10px;line-height:1.8;color:#ffffff">Loading...</div>
+    </div>
+
+    <!-- 100D BREADTH QUARTILE — Dr Steenbarger context rule -->
+    <div class="card" style="margin-bottom:14px" id="breadth100Card">
+      <div class="card-title">100D BREADTH QUARTILE</div>
+      <div id="breadth100Label" style="font-family:Impact,sans-serif;font-size:28px;letter-spacing:1px;margin-bottom:4px">–</div>
+      <div id="breadth100Sub" style="font-size:11px;font-weight:700;margin-bottom:8px;letter-spacing:1px">–</div>
+      <div id="breadth100Desc" style="font-size:10px;line-height:1.8;color:#ffffff">Loading...</div>
+    </div>
+
+    <!-- 200D BREADTH QUARTILE — Dr Steenbarger method -->
+    <div class="card" style="margin-bottom:14px" id="breadth200Card">
+      <div class="card-title">200D BREADTH QUARTILE</div>
+      <div id="breadth200Label" style="font-family:Impact,sans-serif;font-size:28px;letter-spacing:1px;margin-bottom:4px">–</div>
+      <div id="breadth200Sub" style="font-size:11px;font-weight:700;margin-bottom:8px;letter-spacing:1px">–</div>
+      <div id="breadth200Desc" style="font-size:10px;line-height:1.8;color:#ffffff">Loading...</div>
+    </div>
+
+    <!-- PCRE EQUITY PUT/CALL RATIO QUARTILE — Dr Steenbarger sentiment rule -->
+    <div class="card" style="margin-bottom:14px" id="pcreCard">
+      <div class="card-title">PCRE EQUITY PUT/CALL QUARTILE</div>
+      <div id="pcreLabel" style="font-family:Impact,sans-serif;font-size:28px;letter-spacing:1px;margin-bottom:4px">–</div>
+      <div id="pcreSub" style="font-size:11px;font-weight:700;margin-bottom:8px;letter-spacing:1px">–</div>
+      <div id="pcreDesc" style="font-size:10px;line-height:1.8;color:#ffffff;margin-bottom:10px">–</div>
+
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
+        <label for="pcreInput" style="font-size:10px;color:#aaccee;letter-spacing:1px;font-weight:700">$PCRE TODAY:</label>
+        <input type="number" id="pcreInput" step="0.01" min="0" max="3" value="0.45"
+          style="flex:1;background:#0a0f1a;border:1px solid #1a2535;color:#ffffff;padding:4px 8px;font-family:'Space Mono',monospace;font-size:12px;border-radius:3px;outline:none" />
+        <button id="pcreBtn" style="background:#38bdf830;border:1px solid #38bdf850;color:#38bdf8;padding:4px 10px;font-size:10px;font-weight:700;letter-spacing:1px;cursor:pointer;border-radius:3px;font-family:'Space Mono',monospace">UPDATE</button>
+      </div>
+
+      <div style="padding:8px 10px;background:#0a1a2a;border-left:3px solid #38bdf8;border-radius:2px;font-size:10px;line-height:1.7">
+        <div style="font-size:9px;color:#38bdf8;letter-spacing:1px;font-weight:700;margin-bottom:4px">QUARTILE THRESHOLDS <span id="pcreThreshSource" style="color:#6b7a8f;font-weight:400">(10-YEAR)</span></div>
+        <div style="color:#aaccee">Bottom quartile: <span id="pcreQ25Label" style="color:#f97316;font-weight:700">≤ 0.53</span> → next 10 days SPY +0.25% (subnormal, greed)</div>
+        <div style="color:#aaccee">Middle (Q2/Q3): <span id="pcreMidLabel" style="color:#ffffff;font-weight:700">0.53 – 0.68</span> → no edge</div>
+        <div style="color:#aaccee">Top quartile: <span id="pcreQ75Label" style="color:#22c55e;font-weight:700">≥ 0.68</span> → next 10 days SPY +0.96% (edge, fear)</div>
+      </div>
+    </div>
+
+    <!-- RSI 5-PERIOD SPY — Dr Steenbarger overbought/oversold rule -->
+    <div class="card" style="margin-bottom:14px" id="rsiCard">
+      <div class="card-title">SPY 5-PERIOD RSI</div>
+      <div id="rsiLabel" style="font-family:Impact,sans-serif;font-size:28px;letter-spacing:1px;margin-bottom:4px">–</div>
+      <div id="rsiSub" style="font-size:11px;font-weight:700;margin-bottom:8px;letter-spacing:1px">–</div>
+      <div id="rsiDesc" style="font-size:10px;line-height:1.8;color:#ffffff;margin-bottom:10px">–</div>
+
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
+        <label for="rsiInput" style="font-size:10px;color:#aaccee;letter-spacing:1px;font-weight:700">RSI TODAY:</label>
+        <input type="number" id="rsiInput" step="0.1" min="0" max="100" value="95"
+          style="flex:1;background:#0a0f1a;border:1px solid #1a2535;color:#ffffff;padding:4px 8px;font-family:'Space Mono',monospace;font-size:12px;border-radius:3px;outline:none" />
+        <button id="rsiBtn" style="background:#38bdf830;border:1px solid #38bdf850;color:#38bdf8;padding:4px 10px;font-size:10px;font-weight:700;letter-spacing:1px;cursor:pointer;border-radius:3px;font-family:'Space Mono',monospace">UPDATE</button>
+      </div>
+
+      <div style="padding:8px 10px;background:#0a1a2a;border-left:3px solid #38bdf8;border-radius:2px;font-size:10px;line-height:1.7">
+        <div style="font-size:9px;color:#38bdf8;letter-spacing:1px;font-weight:700;margin-bottom:4px">RSI THRESHOLDS (5-PERIOD) <span id="rsiSource" style="color:#6b7a8f;font-weight:400">(manual)</span></div>
+        <div style="color:#aaccee">Oversold: <span style="color:#22c55e;font-weight:700">≤ 30</span> → contrarian BULL signal (bounce likely)</div>
+        <div style="color:#aaccee">Middle: <span style="color:#ffffff;font-weight:700">30 – 70</span> → no edge</div>
+        <div style="color:#aaccee">Overbought: <span style="color:#f97316;font-weight:700">≥ 70</span> → contrarian BEAR signal (extended, mean reversion)</div>
+        <div style="color:#6b7a8f;margin-top:4px;font-size:9px">Update ~30 min after open for stable intraday reading</div>
+      </div>
+    </div>
+
+    <!-- XLE vs SPY BREADTH ROTATION — Dr Steenbarger Jan 16 2026 rule -->
+    <div class="card" style="margin-bottom:14px" id="xleRotCard">
+      <div class="card-title">XLE vs SPY BREADTH ROTATION</div>
+      <div id="xleRotLabel" style="font-family:Impact,sans-serif;font-size:28px;letter-spacing:1px;margin-bottom:4px">–</div>
+      <div id="xleRotSub" style="font-size:11px;font-weight:700;margin-bottom:8px;letter-spacing:1px">–</div>
+      <div id="xleRotDesc" style="font-size:10px;line-height:1.8;color:#ffffff;margin-bottom:10px">Loading sector data...</div>
+
+      <div style="padding:8px 10px;background:#0a1a2a;border-left:3px solid #38bdf8;border-radius:2px;font-size:10px;line-height:1.7">
+        <div style="font-size:9px;color:#38bdf8;letter-spacing:1px;font-weight:700;margin-bottom:4px">ROTATION THRESHOLDS <span id="xleRotSource" style="color:#6b7a8f;font-weight:400">(loading)</span></div>
+        <div style="color:#aaccee">Bottom half: <span id="xleRotBotLabel" style="color:#22c55e;font-weight:700">—</span> → XLE weak vs SPY → no rotation warning</div>
+        <div style="color:#aaccee">Top half: <span id="xleRotTopLabel" style="color:#f97316;font-weight:700">—</span> → XLE strong vs SPY → SPY subnormal forward</div>
+        <div style="color:#aaccee">Top 10%: <span id="xleRotExtLabel" style="color:#ef4444;font-weight:700">—</span> → extreme energy lead → negative SPY next 3-5d</div>
+        <div style="color:#6b7a8f;margin-top:4px;font-size:9px">Dr S: energy leadership = oil/inflation headwind for SPY</div>
+      </div>
+    </div>
+
+
+  </div>
+
+</div>
+
+<div class="footer">σ = STD DEV OF 11 SECTOR BREADTHS × 10 — DR STEENBARGER METHOD</div>
+
+<script>
+const SECTORS  = ["XLK","XLV","XLF","XLI","XLP","XLU","XLY","XLE","XLB","XLRE","XLC"];
+const FULLNAMES = { XLK:"Technology", XLV:"Health Care", XLF:"Financials", XLI:"Industrials", XLP:"Cons. Staples", XLU:"Utilities", XLY:"Cons. Discret.", XLE:"Energy", XLB:"Materials", XLRE:"Real Estate", XLC:"Comm. Services" };
+const SECTORDES = { XLK:"Semiconductors, Software & AI", XLV:"Pharma & Insurance", XLF:"Banks & Insurance", XLI:"Defense & Machinery", XLP:"Food, Drinks & Household", XLU:"Electric & Water", XLY:"Retail & Leisure", XLE:"Oil & Gas", XLB:"Mining & Chemicals", XLRE:"REITs & Property", XLC:"Social Media & Telecom" };
+const TOPSTOCKS = {
+  XLK:"NVDA → AI & GPU leader\nAAPL → iPhone & services\nMSFT → Cloud & enterprise\nAVGO → Semiconductors\nSMH → Chip ETF",
+  XLV:"UNH → Largest US insurer\nLLY → Weight loss & diabetes\nJNJ → Pharma & medtech\nABBV → Immunology drugs\nMRK → Cancer & vaccines",
+  XLF:"JPM → Largest US bank\nBAC → Retail & investment\nGS → Investment banking\nWFC → Consumer banking\nBLK → Asset management",
+  XLI:"GE → Aerospace & energy\nCAT → Heavy machinery\nRTX → Defense & aerospace\nHON → Industrial tech\nUNP → Rail freight",
+  XLP:"PG → Consumer goods\nKO → Beverages global\nPEP → Snacks & drinks\nWMT → Retail giant\nCOST → Wholesale clubs",
+  XLU:"NEE → NextEra (renewable + nuclear)\nDUK → Duke (electric + gas)\nSO → Southern (electric + nuclear)\nAEP → American Electric\nEXC → Exelon (largest nuclear US)\nPCG → PG&E (electric + gas)\nSRE → Sempra Energy\n⚛ NUCLEAR → NLR, URA, URNM",
+  XLY:"AMZN → E-commerce & cloud\nTSLA → Electric vehicles\nHD → Home improvement\nMCD → Fast food global\nNKE → Sportswear",
+  XLE:"XOM → Largest US oil\nCVX → Integrated oil\nCOP → E&P focused\nOXY → Permian basin\nSLB → Oilfield services",
+  XLB:"LIN → Industrial gases\nAPD → Air products\nNEM → Gold mining\nFCX → Copper mining\nGLD → Gold ETF",
+  XLRE:"PLD → Logistics REIT\nAMT → Cell towers\nEQIX → Data centers\nSPG → Shopping malls\nIYR → REIT ETF",
+  XLC:"META → Social media\nGOOGL → Search & cloud\nNFLX → Streaming\nDIS → Entertainment\nCMCSA → Cable & media"
+};
+const OFFENSE = ["XLB","XLI","XLE","XLC","XLK","XLY","XLF"];
+const DEFENSE = ["XLU","XLP","XLV","XLRE"];
+
+const BB_URL = "https://marketcharts.com/data/eac1f95bx778e6e6210d5c8fa?csv";
+const BB_LOWER_URL = "https://marketcharts.com/data/eac1f95bx807b770781124da2?csv";
+const PCRE_URL = "https://marketcharts.com/data/eac1f95bx09674a12f10ccda4?csv";
+const RSI_URL  = "https://marketcharts.com/data/eac1f95bx146c926b86503bb7?csv";
+
+const CSV_URLS = {
+  XLK:  "https://marketcharts.com/data/eac1f95bx3f5d0f331de2676d?csv",
+  XLV:  "https://marketcharts.com/data/eac1f95bx407f83b8218832e2?csv",
+  XLF:  "https://marketcharts.com/data/eac1f95bx4441b1eba6fb25ac?csv",
+  XLI:  "https://marketcharts.com/data/eac1f95bx190a9d72bafd6ce7?csv",
+  XLP:  "https://marketcharts.com/data/eac1f95bxddc8dbb3c6453991?csv",
+  XLU:  "https://marketcharts.com/data/eac1f95bxdbe99ca30fcf2982?csv",
+  XLY:  "https://marketcharts.com/data/eac1f95bxfac6a66661b831eb?csv",
+  XLE:  "https://marketcharts.com/data/eac1f95bx648b5b0370eef5e0?csv",
+  XLB:  "https://marketcharts.com/data/eac1f95bxa9cac8f73c01eb22?csv",
+  XLRE: "https://marketcharts.com/data/eac1f95bxa160ab69be24d4bc?csv",
+  XLC:  "https://marketcharts.com/data/eac1f95bxca50dab1dc4ec23c?csv",
+};
+
+function parseCSV(text, ticker) {
+  const rejoined = text.replace(/(\d{4}-\d{2}-)\r?\n(\d{2},)/g, '$1$2');
+  const lines = rejoined.trim().split('\n').filter(l => l.trim());
+  if(lines.length < 2) return null;
+  const headers = lines[0].split(',').map(h => h.trim());
+  const lastRow  = lines[lines.length - 1].split(',');
+  const result = { ticker, date: lastRow[0]?.trim() };
+  const mas = [3, 5, 10, 20, 50, 100, 200];
+  for(const ma of mas) {
+    const idx = headers.findIndex(h => {
+      const u = h.toUpperCase();
+      return u.includes(`PCTASMA${ma}`) && !u.includes('RANGESD') && !u.includes('|');
+    });
+    result[ma] = idx >= 0 ? parseFloat(lastRow[idx]) : null;
+  }
+
+  // Capture full 20D history (needed for XLE-vs-SPY rotation quartile)
+  const idx20 = headers.findIndex(h => {
+    const u = h.toUpperCase();
+    return u.includes('PCTASMA20') && !u.includes('RANGESD') && !u.includes('|');
+  });
+  if(idx20 >= 0) {
+    result.history20 = [];
+    for(let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',');
+      const date = cols[0]?.trim();
+      const v = parseFloat(cols[idx20]);
+      if(!isNaN(v) && date) result.history20.push({ date, val: v });
+    }
+  }
+
+  return result;
+}
+
+async function fetchCSV(ticker, url) {
+  const proxies = [
+    `https://marketcharts-proxy.lindbergbeatrice85.workers.dev/?url=${encodeURIComponent(url)}&t=${Date.now()}`,
+    `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+  ];
+  let lastError;
+  for (const proxy of proxies) {
+    try {
+      const res = await fetch(proxy);
+      if(!res.ok) throw new Error(`${ticker} fetch failed: ${res.status}`);
+      const text = await res.text();
+      if(text && text.length > 100) return parseCSV(text, ticker);
+    } catch(e) { lastError = e; }
+  }
+  throw lastError || new Error(`${ticker} all proxies failed`);
+}
+
+async function fetchBollingerBand() {
+  const proxies = [
+    `https://marketcharts-proxy.lindbergbeatrice85.workers.dev/?url=${encodeURIComponent(BB_URL)}&t=${Date.now()}`,
+    `https://corsproxy.io/?url=${encodeURIComponent(BB_URL)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(BB_URL)}`
+  ];
+  for(const proxy of proxies) {
+    try {
+      const res = await fetch(proxy);
+      if(!res.ok) continue;
+      const text = await res.text();
+      if(!text || text.length < 100) continue;
+      const lines = text.trim().split('\n').filter(l => l.trim());
+      if(lines.length < 2) continue;
+      const headers = lines[0].split(',').map(h => h.trim());
+      const bbIdx = headers.findIndex(h => h.toUpperCase().includes('PCTABBUPPER'));
+      if(bbIdx < 0) continue;
+      const lastRow = lines[lines.length - 1].split(',');
+      const val = parseFloat(lastRow[bbIdx]);
+      if(isNaN(val)) continue;
+      const allVals = lines.slice(1).map(l => parseFloat(l.split(',')[bbIdx])).filter(v => !isNaN(v));
+      allVals.sort((a,b) => a - b);
+      const q25 = allVals[Math.floor(allVals.length * 0.25)];
+      const q75 = allVals[Math.floor(allVals.length * 0.75)];
+      return { current: Math.round(val * 100) / 100, q25: Math.round(q25*100)/100, q75: Math.round(q75*100)/100 };
+    } catch(e) { continue; }
+  }
+  return null;
+}
+
+async function fetchBollingerLower() {
+  try {
+    const res = await fetch(`https://marketcharts-proxy.lindbergbeatrice85.workers.dev/?url=${encodeURIComponent(BB_LOWER_URL)}&t=${Date.now()}`);
+    if(!res.ok) return null;
+    const text = await res.text();
+    if(!text || text.length < 100) return null;
+    const lines = text.trim().split('\n').filter(l => l.trim());
+    if(lines.length < 2) return null;
+    const headers = lines[0].split(',').map(h => h.trim());
+    const bbIdx = headers.findIndex(h => h.toUpperCase().includes('BELOW') || h.toUpperCase().includes('PCTBELOWLOWER'));
+    if(bbIdx < 0) return null;
+    const lastRow = lines[lines.length - 1].split(',');
+    const val = parseFloat(lastRow[bbIdx]);
+    if(isNaN(val)) return null;
+    const allVals = lines.slice(1).map(l => parseFloat(l.split(',')[bbIdx])).filter(v => !isNaN(v));
+    allVals.sort((a,b) => a - b);
+    const q25 = allVals[Math.floor(allVals.length * 0.25)];
+    const q75 = allVals[Math.floor(allVals.length * 0.75)];
+    return { current: Math.round(val*100)/100, q25: Math.round(q25*100)/100, q75: Math.round(q75*100)/100 };
+  } catch(e) { return null; }
+}
+
+// Fetch PCRE Equity Put/Call Ratio from MarketCharts
+// Columns: DATE,$PCRE:OPEN,$PCRE:HIGH,$PCRE:LOW,$PCRE:CLOSE
+// Uses CLOSE column. Computes Q25/Q75 from full history.
+async function fetchPcre() {
+  try {
+    const res = await fetch(`https://marketcharts-proxy.lindbergbeatrice85.workers.dev/?url=${encodeURIComponent(PCRE_URL)}&t=${Date.now()}`);
+    if(!res.ok) return null;
+    const text = await res.text();
+    if(!text || text.length < 100) return null;
+    const lines = text.trim().split('\n').filter(l => l.trim());
+    if(lines.length < 2) return null;
+    const headers = lines[0].split(',').map(h => h.trim().toUpperCase());
+    // Find the CLOSE column — PCRE csv has $PCRE:CLOSE
+    const closeIdx = headers.findIndex(h => h.includes('CLOSE'));
+    const dateIdx  = headers.findIndex(h => h.includes('DATE'));
+    if(closeIdx < 0) return null;
+    // Walk backwards to find last non-empty close value (for latest)
+    let lastVal = null;
+    let lastDate = null;
+    for(let i = lines.length - 1; i >= 1; i--) {
+      const cols = lines[i].split(',');
+      const v = parseFloat(cols[closeIdx]);
+      if(!isNaN(v)) {
+        lastVal = v;
+        lastDate = dateIdx >= 0 ? cols[dateIdx] : null;
+        break;
+      }
+    }
+    if(lastVal === null) return null;
+    const allVals = lines.slice(1)
+      .map(l => parseFloat(l.split(',')[closeIdx]))
+      .filter(v => !isNaN(v));
+    allVals.sort((a,b) => a - b);
+    const q25 = allVals[Math.floor(allVals.length * 0.25)];
+    const q75 = allVals[Math.floor(allVals.length * 0.75)];
+    return {
+      current: Math.round(lastVal*100)/100,
+      q25: Math.round(q25*100)/100,
+      q75: Math.round(q75*100)/100,
+      date: lastDate,
+      n: allVals.length
+    };
+  } catch(e) { return null; }
+}
+
+// Fetch SPY 5-period RSI from MarketCharts
+// Uses the most recent non-empty value from the RSI column.
+async function fetchRsi() {
+  try {
+    const res = await fetch(`https://marketcharts-proxy.lindbergbeatrice85.workers.dev/?url=${encodeURIComponent(RSI_URL)}&t=${Date.now()}`);
+    if(!res.ok) return null;
+    const text = await res.text();
+    if(!text || text.length < 100) return null;
+    const lines = text.trim().split('\n').filter(l => l.trim());
+    if(lines.length < 2) return null;
+    const headers = lines[0].split(',').map(h => h.trim().toUpperCase());
+    // Find RSI column. MarketCharts csv columns for an indicator typically end in the indicator name or value
+    // Try any column whose header includes 'RSI' first, else last column as fallback
+    let rsiIdx = headers.findIndex(h => h.includes('RSI'));
+    const dateIdx = headers.findIndex(h => h.includes('DATE'));
+    if(rsiIdx < 0) rsiIdx = headers.length - 1;  // fallback: last column
+    // Walk backwards to find last non-empty value (latest trading day)
+    let lastVal = null;
+    let lastDate = null;
+    for(let i = lines.length - 1; i >= 1; i--) {
+      const cols = lines[i].split(',');
+      const v = parseFloat(cols[rsiIdx]);
+      if(!isNaN(v)) {
+        lastVal = v;
+        lastDate = dateIdx >= 0 ? cols[dateIdx] : null;
+        break;
+      }
+    }
+    if(lastVal === null) return null;
+    return {
+      current: Math.round(lastVal*10)/10,
+      date: lastDate
+    };
+  } catch(e) { return null; }
+}
+
+// Compute XLE-vs-SPY rotation signal per Dr S Jan 16 2026 post.
+// XLE_20D - SPY_20D_proxy (where SPY proxy = avg of all 11 sector 20D readings)
+// When the spread is in the TOP HALF of its distribution since 2020 → subnormal SPY forward returns.
+// Top extreme → negative returns next 3-5 days.
+// Uses full history captured in parseCSV history20 arrays.
+function computeXleRotation(sectorResults) {
+  const xleResult = sectorResults.find(r => r?.ticker === 'XLE');
+  if(!xleResult?.history20?.length) return null;
+
+  // Build a date-keyed map of SPY-proxy values (avg of all sector 20D readings per date)
+  // Only include dates where we have at least 8 of the 11 sectors to keep signal clean
+  const dateMap = {};  // date -> {sum, count}
+  for(const r of sectorResults) {
+    if(!r?.history20) continue;
+    for(const {date, val} of r.history20) {
+      if(!dateMap[date]) dateMap[date] = { sum: 0, count: 0 };
+      dateMap[date].sum += val;
+      dateMap[date].count += 1;
+    }
+  }
+
+  // Compute spread history: XLE_20D - SPY_proxy_20D, filtered to 2020+
+  const spreadHistory = [];
+  for(const {date, val: xleVal} of xleResult.history20) {
+    if(date < '2020-01-01') continue;  // Dr S rule starts from 2020
+    const agg = dateMap[date];
+    if(!agg || agg.count < 8) continue;
+    const spyProxy = agg.sum / agg.count;
+    spreadHistory.push({ date, spread: xleVal - spyProxy, xleVal, spyProxy });
+  }
+
+  if(spreadHistory.length < 50) return null;
+
+  // Current reading = last row
+  const last = spreadHistory[spreadHistory.length - 1];
+  const allSpreads = spreadHistory.map(x => x.spread).sort((a,b) => a - b);
+  const n = allSpreads.length;
+  const q25 = allSpreads[Math.floor(n * 0.25)];
+  const q50 = allSpreads[Math.floor(n * 0.50)];
+  const q75 = allSpreads[Math.floor(n * 0.75)];
+  const q90 = allSpreads[Math.floor(n * 0.90)];
+
+  return {
+    current: Math.round(last.spread * 10) / 10,
+    xleCurrent: Math.round(last.xleVal * 10) / 10,
+    spyCurrent: Math.round(last.spyProxy * 10) / 10,
+    q25: Math.round(q25 * 10) / 10,
+    q50: Math.round(q50 * 10) / 10,
+    q75: Math.round(q75 * 10) / 10,
+    q90: Math.round(q90 * 10) / 10,
+    n,
+    date: last.date
+  };
+}
+
+async function loadRealData() {
+  setStatus('loading');
+  try {
+    const [results, bbData] = await Promise.all([
+      Promise.all(SECTORS.map(s => fetchCSV(s, CSV_URLS[s]))),
+      fetchBollingerBand()
+    ]);
+    const valid = results.filter(r => r && r[20] !== null);
+    if(valid.length < 8) throw new Error('Too many sectors failed');
+    const mas = [3, 5, 10, 20, 50, 100, 200];
+    const realMaData = mas.map(ma => ({
+      ma,
+      label: ma + 'D',
+      sd: calcSD(SECTORS.map((s,i) => results[i]?.[ma] ?? 50)),
+      vals: SECTORS.map((s,i) => results[i]?.[ma] ?? 50),
+    }));
+    const currentAvg50  = results.reduce((sum, r) => sum + (r?.[50]  ?? 50), 0) / results.length;
+    const currentAvg5   = results.reduce((sum, r) => sum + (r?.[5]   ?? 50), 0) / results.length;
+    const currentAvg100 = results.reduce((sum, r) => sum + (r?.[100] ?? 50), 0) / results.length;
+    const currentAvg200 = results.reduce((sum, r) => sum + (r?.[200] ?? 50), 0) / results.length;
+    window.breadth50Data  = { current: Math.round(currentAvg50  * 10) / 10 };
+    window.breadth5Data   = { current: Math.round(currentAvg5   * 10) / 10 };
+    window.breadth100Data = { current: Math.round(currentAvg100 * 10) / 10 };
+    window.breadth200Data = { current: Math.round(currentAvg200 * 10) / 10 };
+    window.maData = realMaData;
+
+    // Compute XLE vs SPY-proxy rotation (Dr S Jan 16 2026 rule)
+    const xleRot = computeXleRotation(results);
+    if(xleRot) {
+      window.xleRotation = xleRot;
+    }
+
+    updateBreadth50Card();
+    updateBreadth5Card();
+    updateBreadth100Card();
+    updateBreadth200Card();
+    if(typeof updateXleRotCard === 'function') updateXleRotCard();
+    updateAlignmentCard();
+    if(bbData) { window.bbData = bbData; }
+    const bbLowerData = await fetchBollingerLower();
+    if(bbLowerData) { window.bbLowerData = bbLowerData; }
+    if(window.bbData || window.bbLowerData) updateBollingerCard();
+    updateAlignmentCard();
+
+    // Fetch PCRE Equity Put/Call Ratio (Dr S sentiment edge)
+    const pcreData = await fetchPcre();
+    if(pcreData) {
+      window.pcreData = pcreData;
+      window.pcreValue = pcreData.current;  // keep alignment function in sync
+      // Update the input field with live value so user sees today's data
+      const pcreInput = document.getElementById('pcreInput');
+      if(pcreInput) pcreInput.value = pcreData.current.toFixed(2);
+      // Update Q25/Q75 thresholds with live calculated values
+      window.pcreQ25 = pcreData.q25;
+      window.pcreQ75 = pcreData.q75;
+      if(typeof updatePcreCard === 'function') updatePcreCard();
+      if(typeof updateAlignmentCard === 'function') updateAlignmentCard();
+    }
+
+    // Fetch SPY 5-period RSI (Dr S overbought/oversold edge)
+    const rsiData = await fetchRsi();
+    if(rsiData) {
+      window.rsiData = rsiData;
+      window.rsiValue = rsiData.current;  // keep alignment function in sync
+      const rsiInput = document.getElementById('rsiInput');
+      if(rsiInput) rsiInput.value = rsiData.current.toFixed(1);
+      const rsiSrc = document.getElementById('rsiSource');
+      if(rsiSrc) { rsiSrc.textContent = '(LIVE)'; rsiSrc.style.color = '#22c55e'; }
+      if(typeof updateRsiCard === 'function') updateRsiCard();
+      if(typeof updateAlignmentCard === 'function') updateAlignmentCard();
+    }
+
+    // Re-run regime classification now that PCRE, RSI, BB data are all loaded
+    // so the bear-stack modifier on the BULL MARKET regime can reflect live signals
+    if(typeof update === 'function') update();
+
+    const dateLabel = results[0]?.date || 'today';
+    document.querySelector('.header div div:first-child').textContent = `DATA AS OF ${dateLabel}`;
+    document.querySelector('.header div div:last-child').style.color = '#22c55e';
+    document.querySelector('.header div div:last-child').textContent = 'LIVE DATA ✓';
+    return realMaData;
+  } catch(e) {
+    console.error('Data fetch error:', e);
+    setStatus('error');
+    return null;
+  }
+}
+
+function setStatus(s) {
+  const el = document.querySelector('.header div div:last-child');
+  if(s === 'loading') { el.style.color = '#eab308'; el.textContent = 'LOADING DATA...'; }
+  if(s === 'error')   { el.style.color = '#ef4444'; el.textContent = 'DATA ERROR — USING SIMULATED'; }
+}
+
+const simVals = {
+  3:   [12, 9,  61, 79, 92, 85, 6,  94, 40, 10, 32],
+  5:   [19, 15, 58, 74, 87, 80, 11, 91, 44, 17, 36],
+  10:  [28, 23, 54, 69, 81, 75, 18, 87, 48, 24, 41],
+  20:  [39, 32, 51, 64, 75, 70, 25, 82, 52, 31, 44],
+  50:  [50, 45, 54, 61, 68, 65, 37, 72, 56, 43, 51],
+  100: [57, 53, 58, 61, 64, 62, 50, 66, 60, 52, 59],
+  200: [65, 62, 64, 66, 67, 65, 61, 65, 64, 61, 64],
+};
+
+function calcSD(vals) {
+  const dec = vals.map(v=>v/100);
+  const mean = dec.reduce((a,b)=>a+b,0)/dec.length;
+  const variance = dec.reduce((s,v)=>s+Math.pow(v-mean,2),0)/dec.length;
+  return parseFloat((Math.sqrt(variance)*10).toFixed(2));
+}
+
+function sdColor(sd) {
+  if(sd>=2.0) return {label:"DANGER",  color:"#ef4444", bg:"#1a0404", desc:"DANGER — Sectors sharply diverging. Reduce longs. Stop buying dips. Consider shorts."};
+  if(sd>=1.5) return {label:"WARNING", color:"#f97316", bg:"#1a0a02", desc:"WARNING — Hidden weakness. Reduce size. Tighten stops. Only strongest sectors."};
+  if(sd>=1.0) return {label:"CAUTION", color:"#eab308", bg:"#1a1402", desc:"CAUTION — Rotation underway. Be selective. Smaller size. Leading sectors only."};
+  if(sd>=0.5) return {label:"CAUTION", color:"#eab308", bg:"#1a1402", desc:"CAUTION — Moderate divergence. Still selective. Watch for rotation."};
+  return              {label:"CALM",   color:"#22c55e", bg:"#021408", desc:"CALM — Broad participation. Follow momentum. Full size. Buy dips."};
+}
+
+function avgPct(vals, tickers) {
+  return tickers.reduce((s,t)=>{ const i=SECTORS.indexOf(t); return s+(i>=0?vals[i]:0); },0)/tickers.length;
+}
+
+function detectRegime(maData) {
+  const sd3   = maData.find(x=>x.ma===3).sd;
+  const sd5   = maData.find(x=>x.ma===5).sd;
+  const sd20  = maData.find(x=>x.ma===20).sd;
+  const sd50  = maData.find(x=>x.ma===50).sd;
+  const sd100 = maData.find(x=>x.ma===100).sd;
+  const sd200 = maData.find(x=>x.ma===200).sd;
+  const vals20 = maData.find(x=>x.ma===20).vals;
+  const vals5  = maData.find(x=>x.ma===5).vals;
+
+  const offAvg5   = avgPct(vals5,  OFFENSE);
+  const offAvg20  = avgPct(vals20, OFFENSE);
+  const vals50    = maData.find(x=>x.ma===50).vals;
+  const vals200   = maData.find(x=>x.ma===200).vals;
+  const offAvg50  = avgPct(vals50,  OFFENSE);
+  const defAvg50  = avgPct(vals50,  DEFENSE);
+  const offAvg200 = avgPct(vals200, OFFENSE);
+  const defAvg200 = avgPct(vals200, DEFENSE);
+
+  const chips = [
+    {label:`3D σ${sd3.toFixed(1)}`,    ...sdColor(sd3)},
+    {label:`5D σ${sd5.toFixed(1)}`,    ...sdColor(sd5)},
+    {label:`20D σ${sd20.toFixed(1)}`,  ...sdColor(sd20)},
+    {label:`50D σ${sd50.toFixed(1)}`,  ...sdColor(sd50)},
+    {label:`200D σ${sd200.toFixed(1)}`,...sdColor(sd200)},
+  ];
+
+  // OVERBOUGHT — σ very low short term + offense maxed out
+  if(sd3 < 0.5 && sd5 < 0.5 && offAvg5 > 75) {
+    return { color:"#f97316", bg:"#1a0a02",
+      regime:"OVERBOUGHT", sub:"Do not chase. Take profits.",
+      desc:"Everyone in the same trade. Participation maxed out — no new buyers left. σ very low short term means sectors all moving together. Large players likely selling into strength.",
+      chips,
+      rules:[
+        {if:"Opens strong + breadth stalls",   then:"TAKE PROFITS",    color:"#f97316"},
+        {if:"Opens weak + selling accelerates", then:"DO NOT BUY",     color:"#ef4444"},
+        {if:"Opens weak + lows hold",           then:"WAIT — no edge", color:"#eab308"},
+      ],
+      note:"σ very low = everyone crowded into same trade. Price not moving higher despite buyers = large players selling into strength. Bulls get trapped. Do not size up here."
+    };
+  }
+
+  // MOMENTUM — all timeframes healthy, broad participation
+  if(sd200 < 0.8 && sd100 < 1.0 && sd20 < 1.5 && sd5 < 1.5 && offAvg20 > 60) {
+    return { color:"#22c55e", bg:"#021408",
+      regime:"MOMENTUM", sub:"Follow strength. Full size.",
+      desc:"σ low across all timeframes. Sectors moving together. Offense above 60% on 20D. Broad participation confirmed. Breakouts extend and continuation works.",
+      chips,
+      rules:[
+        {if:"Opens strong + breadth expands",  then:"CONTINUATION", color:"#22c55e"},
+        {if:"Opens weak + lows do NOT expand", then:"BUY THE DIP",  color:"#38bdf8"},
+        {if:"Opens weak + lows expand",        then:"SMALL SHORT",  color:"#eab308"},
+      ],
+      note:"In trending markets each unit of volume gives more price movement. Enter on strength — moves extend. Size up but respect volatility."
+    };
+  }
+
+  // OVERSOLD — cross-sector avg 50D MA below 25% — Dr S fixed quartile threshold
+  const avg50now = window.breadth50Data?.current ?? null;
+  const weakMarketAlso = (sd3 >= 2.0 || sd5 >= 2.0) && sd20 >= 1.5;
+  if(avg50now !== null && avg50now <= 25) {
+    const warningText = weakMarketAlso
+      ? "WARNING — WEAK MARKET also active. Oversold in downtrend. Bounces fail more often. Reduce size. Wait for lows to stop expanding before buying."
+      : "In bull market correction — high probability bounce setup. Dr S edge: next 5 days ~4x normal returns. Buy weakness when lows stop expanding.";
+    return { color:"#22c55e", bg:"#021408",
+      regime:"OVERSOLD", sub:"Buy weakness. Fade panic.",
+      desc:"Cross-sector avg % above 50D MA below 25%. Dr Steenbarger bottom quartile — bounce edge active. " + warningText,
+      chips,
+      rules:[
+        {if:"Opens weak + lows do NOT expand",    then:"HIGH PROB REVERSAL", color:"#22c55e"},
+        {if:"Opens weak + lows still expanding",   then:"WAIT — more selling", color:"#eab308"},
+        {if:"Opens strong + breadth expands",      then:"CONFIRM LONG",       color:"#38bdf8"},
+      ],
+      note:weakMarketAlso
+        ? "Oversold in downtrend — Dr S warning: weakness can beget further weakness before bounce. Reduce size. Shorter holds. Wait for lows to stop expanding."
+        : "Oversold in healthy market — Dr S edge active. Next 5 days historically ~4x normal. Buy dips when lows stop expanding. Scale in carefully."
+    };
+  }
+
+  // BULL MARKET — 50D breadth quartile in upper half (>50%)
+  // Dr Steenbarger: strong 50D breadth → pullbacks on 50-day horizon are buyable
+  // Stacking modifier: count bear signals from PCRE, RSI, BB Breadth
+  // 3+ bears = OVERBOUGHT warning on top of bull structure
+  // 2 bears  = EXTENDED caution
+  // High σ  = ROTATION (volatile rotation inside bull)
+  // Clean   = pure BULL MARKET
+  const b50nowBull = window.breadth50Data?.current ?? null;
+  if(b50nowBull !== null && b50nowBull > 50) {
+    const topQ = b50nowBull >= 75;
+    const sigmaHot = (sd3 >= 2.0 || sd5 >= 2.0) && sd20 >= 1.5;
+
+    // Count bear signals stacking against the bull structure
+    let bullRegBears = 0;
+    const bearList = [];
+    const pcreValBR = window.pcreValue ?? null;
+    const pcQ25BR   = window.pcreQ25 ?? 0.53;
+    if(pcreValBR !== null && pcreValBR <= pcQ25BR) {
+      bullRegBears++;
+      bearList.push('PCRE greed');
+    }
+    const rsiValBR = window.rsiValue ?? null;
+    if(rsiValBR !== null && rsiValBR >= 70) {
+      bullRegBears++;
+      bearList.push('RSI overbought');
+    }
+    const bbValBR = window.bbData?.current ?? null;
+    const bbQ75BR = window.bbData?.q75 ?? null;
+    if(bbValBR !== null && bbQ75BR !== null && bbValBR >= bbQ75BR) {
+      bullRegBears++;
+      bearList.push('BB breadth highest Q');
+    }
+    const bearSummary = bearList.length ? bearList.join(' + ') : 'none';
+
+    // Determine label priority: topQ > 3 bears > 2 bears > sigmaHot > clean
+    let regimeLabel, regimeSub, regimeDesc, regimeColor, regimeBg;
+    if(topQ) {
+      regimeLabel = "BULL MARKET — OVERBOUGHT";
+      regimeSub = "Do not chase. Pullbacks on 50D horizon still buyable.";
+      regimeDesc = "50D breadth in top quartile (>75%). Dr Steenbarger: next 5 day SPY returns only +0.11% — short term overbought, do not chase. BUT 50-day returns remain favorable after strong breadth. Pullbacks are meant to be bought. Think like an investor as well as a trader.";
+      regimeColor = "#f97316"; regimeBg = "#1a0a02";
+    } else if(bullRegBears >= 3) {
+      regimeLabel = "BULL MARKET — OVERBOUGHT";
+      regimeSub = "Bull structure intact BUT " + bullRegBears + " bear signals stacked. Do not chase. Wait for pullback.";
+      regimeDesc = "50D breadth in upper half (" + b50nowBull + "%) = bull structure intact. BUT " + bullRegBears + " bear signals stacked (" + bearSummary + "). Market extended short-term. Dr Steenbarger stacking principle: same-direction stack = high conviction setup — here pointing to overbought. Do not chase longs. Wait for pullback before entering. Bull regime still valid on 50-day horizon.";
+      regimeColor = "#ef4444"; regimeBg = "#1a0408";
+    } else if(bullRegBears >= 2) {
+      regimeLabel = "BULL MARKET — EXTENDED";
+      regimeSub = "Bull structure intact but " + bullRegBears + " bear signals stacked. Caution.";
+      regimeDesc = "50D breadth in upper half (" + b50nowBull + "%) = bull structure intact. " + bullRegBears + " bear signals stacked (" + bearSummary + "). Moderate overbought warning. Size down on longs. Watch for signs of pullback.";
+      regimeColor = "#f97316"; regimeBg = "#1a0a02";
+    } else if(sigmaHot) {
+      regimeLabel = "BULL MARKET — ROTATION";
+      regimeSub = "Volatile rotation inside bull trend. Buy pullbacks.";
+      regimeDesc = "50D breadth in upper half (" + b50nowBull + "%). σ elevated short and medium term — but this is VOLATILE ROTATION inside a bull structure, not a bear market. Dr Steenbarger: after strong 50D breadth, pullbacks are meant to be bought. Traders who bail out miss the bounce. Dual trader/investor mindset required.";
+      regimeColor = "#22c55e"; regimeBg = "#021408";
+    } else {
+      regimeLabel = "BULL MARKET";
+      regimeSub = "Buy pullbacks. Follow strength.";
+      regimeDesc = "50D breadth in upper half (" + b50nowBull + "%). Dr Steenbarger healthy zone. σ calm, participation intact. Pullbacks on 50-day horizon are buyable. Follow strength but do not chase into top quartile.";
+      regimeColor = "#22c55e"; regimeBg = "#021408";
+    }
+
+    return { color: regimeColor, bg: regimeBg,
+      regime: regimeLabel, sub: regimeSub,
+      desc: regimeDesc,
+      chips,
+      rules: (topQ || bullRegBears >= 2) ? [
+        {if:"Opens strong + breadth stalls",       then:"TAKE PROFITS — extended",  color:"#f97316"},
+        {if:"Opens weak + lows do NOT expand",     then:"BUY THE DIP — investor",   color:"#22c55e"},
+        {if:"Opens weak + lows expand",            then:"WAIT — let it wash out",   color:"#eab308"},
+      ] : [
+        {if:"Opens weak + lows do NOT expand",     then:"BUY THE DIP",               color:"#22c55e"},
+        {if:"Opens strong + breadth expands",      then:"TRADE CONTINUATION",        color:"#22c55e"},
+        {if:"Opens weak + lows expand",            then:"WAIT — do not short trend", color:"#eab308"},
+      ],
+      note: (bullRegBears >= 2)
+        ? "Dr Steenbarger stacking: bull structure (50D > 50%) but " + bullRegBears + " contrarian bear signals (" + bearSummary + "). Same-direction stack = high conviction. Today that high conviction points to overbought. Investor mindset: 50-day pullbacks still buyable. Trader mindset: do not chase here, wait for weakness."
+        : (topQ
+          ? "Dr Steenbarger dual mindset: short-term pullback likely (next 5 days subnormal +0.11%) but 50-day horizon favors buying weakness. Do not chase top quartile. Wait for dip, then buy as an investor would."
+          : (sigmaHot
+            ? "Dr Steenbarger: strong 50D breadth + high σ = rotation inside bull, not bear. Traders bail on short-term weakness and miss the bounce. Think dually — trade the volatility intraday, but do not short the trend. Pullbacks are meant to be bought."
+            : "Dr Steenbarger bull regime: pullbacks on 50-day horizon are buyable. Follow leading sectors. Size up on dips when lows stop expanding. Do not fade strength."))
+    };
+  }
+
+  // WEAK MARKET — σ high short and medium term AND 50D breadth broken
+  if((sd3 >= 2.0 || sd5 >= 2.0) && sd20 >= 1.5) {
+    const b50now = window.breadth50Data?.current ?? null;
+    const b5now  = window.breadth5Data?.current  ?? null;
+    const bbNow  = window.bbData?.current         ?? null;
+    const bbQ25  = window.bbData?.q25             ?? null;
+    const exhaustionWarning = (
+      b50now !== null && b50now <= 28 &&
+      b5now  !== null && b5now  <= 28 &&
+      bbNow  !== null && bbQ25  !== null && bbNow <= bbQ25
+    );
+    const regimeLabel = exhaustionWarning ? "WEAK MARKET — OVERSOLD" : "WEAK MARKET";
+    const regimeSub   = exhaustionWarning ? "Bounce risk extreme. Suspend momentum short." : "Short side bias. Do not buy dips.";
+    const regimeDesc  = exhaustionWarning
+      ? "σ high short and medium term — WEAK MARKET structural conditions intact. BUT 50D + 5D + BB all at exhaustion levels simultaneously. Oversold within downtrend. Bounces fail more often but bounce risk is extreme. Do not add shorts. Wait for ADD reversal confirmation."
+      : "σ high short and medium term. Sectors sharply diverging for weeks. Breakouts fail. Breakdowns extend. Short side has edge today.";
+    return { color:"#ef4444", bg:"#1a0408",
+      regime: regimeLabel, sub: regimeSub,
+      desc: regimeDesc,
+      chips,
+      exhaustionWarning,
+      rules:[
+        {if:"Opens weak + new lows expand",          then:"MOMENTUM SHORT",           color:"#ef4444"},
+        {if:"Opens strong + most sectors still red", then:"SELL THE BOUNCE",          color:"#f97316"},
+        {if:"Opens weak + new lows do NOT expand",   then:"FAILED BREAKDOWN — scalp", color:"#38bdf8"},
+      ],
+      note:"σ high = sectors diverging for weeks. Breakouts fail. Breakdowns extend. Look for VWAP reclaim shorts in weak sectors. Reduce size. Intraday only."
+    };
+  }
+
+  // ROTATION — default mixed signals
+  return { color:"#38bdf8", bg:"#0a1a2a",
+    regime:"CHOPPY", sub:"Be selective. Lead sectors only.",
+    desc:"Mixed σ signals. Some timeframes healthy, some not. Neither buyers nor sellers dominant. Breakouts work in leading sectors only — not broad market.",
+    chips,
+    rules:[
+      {if:"Opens strong + breadth expands",  then:"SMALL LONG — quick",  color:"#22c55e"},
+      {if:"Opens weak + lows expand",        then:"SMALL SHORT — quick", color:"#ef4444"},
+      {if:"Opens weak + lows hold",          then:"FADE — scalp only",   color:"#38bdf8"},
+    ],
+    note:"In rotational markets — moves reverse not extend. Fade buying and selling that is drying up. Smaller size, shorter holds, quicker exits. Follow leading sectors only."
+  };
+}
+
+const MAS = [3,5,10,20,50,100,200];
+let maData = MAS.map(ma=>({ ma, label:ma+"D", sd:calcSD(simVals[ma]), vals:simVals[ma] }));
+
+const histLabels = ["Feb23","Feb24","Feb25","Feb26","Mar02","Mar03","Mar04","Mar05","Mar06","Mar10","Mar11","Mar12"];
+const hist3D   = [1.20,1.45,1.90,2.30,2.60,2.90,3.50,3.10,2.80,3.60,3.20,3.42];
+const hist20D  = [0.82,0.97,1.21,1.45,1.71,1.89,2.24,2.06,1.81,2.37,2.14,1.93];
+const hist200D = [0.15,0.16,0.17,0.17,0.18,0.18,0.19,0.19,0.19,0.19,0.19,0.19];
+
+let selMA = 3;
+let barChartObj;
+
+function buildMAList() {
+  const el = document.getElementById('maList');
+  el.innerHTML = '';
+  maData.forEach((d,i) => {
+    const r = sdColor(d.sd);
+    const div = document.createElement('div');
+    div.className = 'ma-row'+(i===selMA?' active':'');
+    div.style.borderColor = i===selMA ? r.color+'40' : 'transparent';
+    div.innerHTML = `<span class="ma-name">${d.label}</span><span class="ma-sd" style="color:${r.color}">${d.sd.toFixed(2)}</span><span class="ma-badge" style="background:${r.color}20;color:${r.color};border:1px solid ${r.color}50">${r.label}</span>`;
+    div.onclick = ()=>{ selMA=i; update(); };
+    el.appendChild(div);
+  });
+}
+
+function buildSectors(vals) {
+  const sl = document.getElementById('sectorList');
+  sl.innerHTML = '';
+  const all = SECTORS.map((s,i)=>({ name:s, full:FULLNAMES[s], val:vals[i], color:vals[i]>=60?"#22c55e":vals[i]>=40?"#eab308":"#ef4444", isOffense:OFFENSE.includes(s) }));
+  sl.innerHTML += `<div class="group-label" style="color:#38bdf8">OFFENSE — RISK ON</div>`;
+  all.filter(s=>s.isOffense).sort((a,b)=>b.val-a.val).forEach(s=>{ sl.innerHTML+=sectorHtml(s); });
+  sl.innerHTML += `<div class="group-label" style="color:#a78bfa">DEFENSE — RISK OFF</div>`;
+  all.filter(s=>!s.isOffense).sort((a,b)=>b.val-a.val).forEach(s=>{ sl.innerHTML+=sectorHtml(s); });
+}
+
+function sectorHtml({name,full,val,color}) {
+  const stocks = TOPSTOCKS[name].split('\n').map(line => {
+    const [ticker, desc] = line.split(' → ');
+    return `<div style="display:flex;gap:6px;padding:2px 0;border-bottom:1px solid #1a253530;align-items:baseline">
+      <span style="font-size:10px;font-weight:700;color:#ffffff;min-width:36px">${ticker.trim()}</span>
+      <span style="font-size:9px;color:#aaccee;line-height:1.4">${desc ? '→ ' + desc.trim() : ''}</span>
+    </div>`;
+  }).join('');
+  return `<div class="sector-row" style="position:relative">
+    <div class="sector-top">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#ffffff;display:inline-block;cursor:pointer"
+          onmouseenter="document.querySelectorAll('.sector-tooltip').forEach(t=>t.style.display='none');this.querySelector('.sector-tooltip').style.display='block'"
+          onmouseleave="this.querySelector('.sector-tooltip').style.display='none'">
+          ${name}
+          <div class="sector-tooltip" style="display:none;position:absolute;left:0;top:100%;z-index:99;background:#0a0f1a;border:1px solid #1a2535;border-radius:6px;padding:10px 12px;min-width:240px;max-width:280px;box-shadow:0 4px 20px #000a;pointer-events:none">
+            <div style="font-size:9px;color:#60a5fa;letter-spacing:1px;font-weight:700;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #1a2535">${full.toUpperCase()} — TOP HOLDINGS</div>
+            ${stocks}
+          </div>
+        </div>
+        <div style="font-size:9px;color:#aaccee">${full}</div>
+      </div>
+      <span class="sector-val" style="color:${color}">${val}%</span>
+    </div>
+    <div class="bar-bg"><div class="bar-fill" style="width:${val}%;background:${color}"></div></div>
+  </div>`;
+}
+
+function update() {
+  buildMAList();
+  const d   = maData[selMA];
+  const r   = sdColor(d.sd);
+  const m20 = maData.find(x=>x.ma===20);
+  const r20 = sdColor(m20.sd);
+
+  document.getElementById('signalBox').style.background = r20.bg;
+  document.getElementById('signalBox').style.border = `1px solid ${r20.color}50`;
+  document.getElementById('signalBig').style.color = r20.color;
+  document.getElementById('signalBig').textContent = `σ ${m20.sd.toFixed(2)}`;
+  document.getElementById('signalLabel').style.color = r20.color;
+  document.getElementById('signalLabel').textContent = r20.label;
+
+  document.getElementById('interpBox').style.background = r.bg;
+  document.getElementById('interpBox').style.border = `1px solid ${r.color}50`;
+  document.getElementById('interpTitle').textContent = `SIGNAL · ${d.label}`;
+  document.getElementById('interpLabel').style.color = r.color;
+  document.getElementById('interpLabel').textContent = r.label;
+  document.getElementById('interpSd').style.color = r.color;
+  document.getElementById('interpSd').textContent = `σ ${d.sd.toFixed(2)}`;
+  document.getElementById('interpDesc').textContent = r.desc;
+  document.getElementById('barTitle').textContent = `% STOCKS ABOVE MA — ${d.label}`;
+  document.getElementById('sectorTitle').textContent = `SECTORS — ${d.label}`;
+  buildSectors(d.vals);
+
+  const cs = detectRegime(maData);
+  window.currentRegime = cs.regime;
+  document.getElementById('combinedBox').style.background = cs.bg;
+  document.getElementById('combinedBox').style.borderColor = cs.color;
+  document.getElementById('combinedRegime').style.color = cs.color;
+  document.getElementById('combinedRegime').textContent = cs.regime;
+  document.getElementById('combinedSub').style.color = cs.color;
+  document.getElementById('combinedSub').textContent = cs.sub;
+  document.getElementById('combinedDesc').textContent = cs.desc;
+  document.getElementById('drNote').textContent = cs.note;
+  document.getElementById('tfBar').innerHTML = cs.chips.map(c=>
+    `<span class="tf-chip" style="background:${c.color}20;color:${c.color};border:1px solid ${c.color}50">${c.label}</span>`
+  ).join('');
+  cs.rules.forEach((rule,i)=>{
+    document.getElementById(`ruleIf${i+1}`).textContent = `IF ${rule.if}`;
+    const th = document.getElementById(`ruleThen${i+1}`);
+    th.textContent = rule.then;
+    th.style.background = rule.color+'20';
+    th.style.color = rule.color;
+    th.style.border = `1px solid ${rule.color}50`;
+  });
+
+  // EXHAUSTION WARNING — only shows when BB + 50D ≤ 28% + 5D ≤ 28% all confirmed
+  let ewEl = document.getElementById('exhaustionWarning');
+  if(!ewEl) {
+    ewEl = document.createElement('div');
+    ewEl.id = 'exhaustionWarning';
+    ewEl.style.cssText = 'margin-top:10px;padding:10px 12px;border-radius:6px;border:1px solid #eab30870;background:#1a140220;display:none';
+    document.getElementById('drNote').parentNode.insertBefore(ewEl, document.getElementById('drNote'));
+  }
+  if(cs.exhaustionWarning) {
+    const b50v = window.breadth50Data?.current ?? '–';
+    const b5v  = window.breadth5Data?.current  ?? '–';
+    ewEl.style.display = 'block';
+    ewEl.innerHTML = `
+      <div style="font-size:9px;letter-spacing:2px;font-weight:700;color:#eab308;margin-bottom:6px">⚠ EXHAUSTION WARNING — MOMENTUM SHORT SUSPENDED</div>
+      <div style="font-size:10px;color:#ffffff;line-height:1.9">
+        BB BREADTH confirmed lowest quartile ✓<br>
+        50D BREADTH ${b50v}% — at or below 28% ✓<br>
+        5D BREADTH ${b5v}% — at or below 28% ✓
+      </div>
+      <div style="font-size:10px;color:#eab308;margin-top:7px;line-height:1.9;font-weight:700">
+        All three exhaustion signals confirmed.<br>
+        Do not add shorts. Bounce risk extreme.<br>
+        Watch ADD on TradingView for reversal confirmation.<br>
+        If ADD reverses from extreme negative → cover shorts.
+      </div>`;
+  } else {
+    ewEl.style.display = 'none';
+  }
+
+  const sorted = SECTORS.map((s,i)=>({name:s,val:d.vals[i],color:d.vals[i]>=60?"#22c55e":d.vals[i]>=40?"#eab308":"#ef4444"})).sort((a,b)=>b.val-a.val);
+  if(barChartObj){
+    barChartObj.data.labels = sorted.map(s=>s.name);
+    barChartObj.data.datasets[0].data = sorted.map(s=>s.val);
+    barChartObj.data.datasets[0].backgroundColor = sorted.map(s=>s.color+'cc');
+    barChartObj.update();
+  }
+
+  // ROTATION BREADTH — Dr Steenbarger method
+  // Confirmed strong = above 50% on BOTH 50D AND 200D
+  // Confirmed weak = below 50% on BOTH 50D AND 200D
+  const vals50r  = maData.find(x=>x.ma===50)?.vals  || [];
+  const vals200r = maData.find(x=>x.ma===200)?.vals || [];
+  const offAvg50r  = Math.round(avgPct(vals50r,  OFFENSE));
+  const defAvg50r  = Math.round(avgPct(vals50r,  DEFENSE));
+  const offAvg200r = Math.round(avgPct(vals200r, OFFENSE));
+  const defAvg200r = Math.round(avgPct(vals200r, DEFENSE));
+
+  const off50Color  = offAvg50r  >= defAvg50r  ? '#22c55e' : '#ef4444';
+  const def50Color  = defAvg50r  >= offAvg50r  ? '#22c55e' : '#ef4444';
+  const off200Color = offAvg200r >= defAvg200r ? '#22c55e' : '#ef4444';
+  const def200Color = defAvg200r >= offAvg200r ? '#22c55e' : '#ef4444';
+
+  document.getElementById('rotationNumbers').innerHTML =
+    `<span style="color:#aaccee">50D &nbsp;</span><span style="color:${off50Color}">Offense ${offAvg50r}%</span> <span style="color:#aaccee">vs</span> <span style="color:${def50Color}">Defense ${defAvg50r}%</span><br>` +
+    `<span style="color:#aaccee">200D</span> <span style="color:${off200Color}">Offense ${offAvg200r}%</span> <span style="color:#aaccee">vs</span> <span style="color:${def200Color}">Defense ${defAvg200r}%</span>`;
+
+  // Confirmed strong/weak sectors — Dr S method: above 50% on BOTH timeframes = confirmed
+  const confirmedStrong = SECTORS.filter((s,i) => vals50r[i] > 50 && vals200r[i] > 50)
+    .map((s,i) => {
+      const idx = SECTORS.indexOf(s);
+      return `<span style="color:#22c55e;font-weight:700">${s}</span> <span style="color:#aaccee">${Math.round(vals50r[idx])}%/50D ${Math.round(vals200r[idx])}%/200D</span>`;
+    });
+  const confirmedWeak = SECTORS.filter((s,i) => vals50r[i] < 50 && vals200r[i] < 50)
+    .map((s,i) => {
+      const idx = SECTORS.indexOf(s);
+      return `<span style="color:#ef4444;font-weight:700">${s}</span> <span style="color:#aaccee">${Math.round(vals50r[idx])}%/50D ${Math.round(vals200r[idx])}%/200D</span>`;
+    });
+
+  let rotSectorsHtml = '';
+  if(confirmedStrong.length) rotSectorsHtml += `<div style="margin-bottom:4px"><span style="color:#22c55e;font-size:8px;letter-spacing:1px;font-weight:700">ROTATING INTO → </span>${confirmedStrong.join(' ')}</div>`;
+  if(confirmedWeak.length)   rotSectorsHtml += `<div><span style="color:#ef4444;font-size:8px;letter-spacing:1px;font-weight:700">ROTATING OUT OF → </span>${confirmedWeak.join(' ')}</div>`;
+  document.getElementById('rotationSectors').innerHTML = rotSectorsHtml;
+
+  // Full ETF table — all 11 sectors with 50D and 200D, sorted by 200D strength
+  const allSectors = SECTORS.map((s,i) => ({
+    name: s,
+    v50:  Math.round(vals50r[i]),
+    v200: Math.round(vals200r[i]),
+    isOffense: OFFENSE.includes(s)
+  })).sort((a,b) => b.v200 - a.v200);
+
+  const rowColor = (v50, v200) => {
+    if(v50 > 50 && v200 > 50) return '#22c55e';  // confirmed strong
+    if(v50 < 50 && v200 < 50) return '#ef4444';  // confirmed weak
+    return '#eab308';                              // mixed / rotating
+  };
+  const cellColor = v => v >= 60 ? '#22c55e' : v >= 40 ? '#eab308' : '#ef4444';
+
+  let tableHtml = '<div style="display:grid;grid-template-columns:auto auto auto;gap:2px 10px;align-items:center;padding:6px 8px;background:#0a0f1a;border:1px solid #1a2535;border-radius:3px">';
+  tableHtml += '<span style="font-size:8px;color:#6b7a8f;letter-spacing:1px;font-weight:700">ETF</span>';
+  tableHtml += '<span style="font-size:8px;color:#6b7a8f;letter-spacing:1px;font-weight:700;text-align:right">50D</span>';
+  tableHtml += '<span style="font-size:8px;color:#6b7a8f;letter-spacing:1px;font-weight:700;text-align:right">200D</span>';
+  allSectors.forEach(s => {
+    const rc = rowColor(s.v50, s.v200);
+    tableHtml += `<span style="font-size:11px;font-weight:700;color:${rc}">${s.name}</span>`;
+    tableHtml += `<span style="font-size:11px;color:${cellColor(s.v50)};text-align:right;font-variant-numeric:tabular-nums">${s.v50}%</span>`;
+    tableHtml += `<span style="font-size:11px;color:${cellColor(s.v200)};text-align:right;font-variant-numeric:tabular-nums">${s.v200}%</span>`;
+  });
+  tableHtml += '</div>';
+  document.getElementById('rotationFullTable').innerHTML = tableHtml;
+
+  // Dynamic text — clean Dr S style, sector names only, no percentage clutter
+  const strongSectorNames = SECTORS.filter((s,i) => vals50r[i] > 50 && vals200r[i] > 50)
+    .sort((a,b) => vals200r[SECTORS.indexOf(b)] - vals200r[SECTORS.indexOf(a)]);
+  const weakSectorNames = SECTORS.filter((s,i) => vals50r[i] < 50 && vals200r[i] < 50)
+    .sort((a,b) => vals200r[SECTORS.indexOf(a)] - vals200r[SECTORS.indexOf(b)]);
+
+  const strongList = strongSectorNames.slice(0,3).join(', ') || '—';
+  const weakList   = weakSectorNames.slice(0,3).join(', ')   || '—';
+
+  let rotText = '';
+  const offLeads50  = offAvg50r  > defAvg50r;
+  const offLeads200 = offAvg200r > defAvg200r;
+
+  if(!offLeads50 && !offLeads200) {
+    rotText = `Defensiveness is the watchword — institutions shunning ${weakList}, rotating into ${strongList}. Breakouts in growth sectors will fail. Look for VWAP reclaim rejections in ${weakList.split(',')[0].trim()}. Sell the bounce. Do not buy dips in offense.`;
+  } else if(offLeads50 && offLeads200) {
+    rotText = `Growth sectors leading — ${strongList} confirmed strong on both timeframes. Breakouts extend and work. Buy first pullback in ${strongList.split(',')[0].trim()}. Do not fade strength.`;
+  } else if(offLeads50 && !offLeads200) {
+    rotText = `Offense leading medium term but losing long term ground — ${weakList.split(',')[0].trim()} deteriorating on 200D. Breakouts may work intraday but fail multi-day. Quick exits. Take profits faster. Watch 200D deterioration as structural warning.`;
+  } else {
+    rotText = `Early rotation into defense — ${strongList} showing relative strength. Breakouts in ${weakList.split(',')[0].trim()} becoming less reliable. Reduce long exposure. Favor quick scalps over holds.`;
+  }
+  document.getElementById('rotationText').textContent = rotText;
+
+  // Sync TODAY'S STACK summary inside regime box
+  if(typeof updateTodayStack === 'function') updateTodayStack();
+}
+
+const hctx = document.getElementById('histChart').getContext('2d');
+new Chart(hctx,{
+  type:'line',
+  data:{
+    labels:histLabels,
+    datasets:[
+      {label:'3D',  data:hist3D,   borderColor:'#00ffff', borderWidth:2, pointRadius:0, tension:0.3, fill:false},
+      {label:'20D', data:hist20D,  borderColor:'#7b2fff', borderWidth:2, pointRadius:0, tension:0.3, fill:false},
+      {label:'50D', data:hist20D.map(v=>v*0.75), borderColor:'#1e90ff', borderWidth:2, pointRadius:0, tension:0.3, fill:false},
+      {label:'200D',data:hist200D, borderColor:'#ff0055', borderWidth:2, pointRadius:2, tension:0.3, fill:false},
+      {label:'',data:histLabels.map(()=>2.0), borderColor:'#ffffff30', borderWidth:1, borderDash:[4,3], pointRadius:0, fill:false},
+      {label:'',data:histLabels.map(()=>1.5), borderColor:'#ffffff20', borderWidth:1, borderDash:[3,3], pointRadius:0, fill:false},
+      {label:'',data:histLabels.map(()=>1.0), borderColor:'#ffffff15', borderWidth:1, borderDash:[2,3], pointRadius:0, fill:false},
+      {label:'',data:histLabels.map(()=>0.5), borderColor:'#ffffff10', borderWidth:1, borderDash:[2,3], pointRadius:0, fill:false},
+    ]
+  },
+  options:{
+    responsive:true,
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{label:c=>`${c.dataset.label} σ ${c.raw.toFixed(2)}`}, backgroundColor:'#0a0f1a', titleColor:'#ffffff', bodyColor:'#ffffff', borderColor:'#1a2535', borderWidth:1}
+    },
+    scales:{
+      x:{grid:{color:'#1a253540'}, ticks:{color:'#ffffff', font:{size:9}}},
+      y:{grid:{color:'#1a253540'}, ticks:{color:'#ffffff', font:{size:9}, callback:v=>v.toFixed(1)}, min:0, max:3.8}
+    }
+  }
+});
+
+const m20i = maData.find(x=>x.ma===20);
+const s0 = SECTORS.map((s,i)=>({name:s,val:m20i.vals[i],color:m20i.vals[i]>=60?"#22c55e":m20i.vals[i]>=40?"#eab308":"#ef4444"})).sort((a,b)=>b.val-a.val);
+const bctx = document.getElementById('barChart').getContext('2d');
+barChartObj = new Chart(bctx,{
+  type:'bar',
+  data:{labels:s0.map(s=>s.name), datasets:[{data:s0.map(s=>s.val), backgroundColor:s0.map(s=>s.color+'cc'), borderRadius:3}]},
+  options:{
+    responsive:true,
+    plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.raw}%`}, backgroundColor:'#0a0f1a', titleColor:'#ffffff', bodyColor:'#ffffff', borderColor:'#1a2535', borderWidth:1}},
+    scales:{
+      x:{grid:{display:false}, ticks:{color:'#ffffff', font:{size:9}}},
+      y:{grid:{color:'#1a253540'}, ticks:{color:'#ffffff', font:{size:9}, callback:v=>v+'%'}, min:0, max:100}
+    }
+  }
+});
+
+// ── 50D BREADTH QUARTILE DISPLAY — Dr Steenbarger method ────────
+// Fixed thresholds directly from Dr S post:
+// Above 75% = top quartile = overbought — next 5 days subnormal +0.11%
+// Below 25% = bottom quartile = oversold — next 5 days edge active ~4x normal
+function updateBreadth50Card() {
+  const d = window.breadth50Data;
+  if(!d || d.current === null) return;
+  const card  = document.getElementById('breadth50Card');
+  const label = document.getElementById('breadth50Label');
+  const sub   = document.getElementById('breadth50Sub');
+  const desc  = document.getElementById('breadth50Desc');
+  const val   = d.current;
+
+  if(val >= 75) {
+    card.style.background = '#1a0a02';
+    card.style.border     = '1px solid #f9731650';
+    label.style.color     = '#f97316';
+    label.textContent     = val + '%  TOP QUARTILE';
+    sub.style.color       = '#f97316';
+    sub.textContent       = 'OVERBOUGHT — NEXT 5 DAYS SUBNORMAL';
+    desc.textContent      = 'Above 75% — Dr S top quartile. Next 5 day SPY returns average only +0.11%. Do not chase. Short term pullback likely. Long term pullbacks are still buying opportunities.';
+  } else if(val <= 25) {
+    card.style.background = '#021408';
+    card.style.border     = '1px solid #22c55e50';
+    label.style.color     = '#22c55e';
+    label.textContent     = val + '%  BOTTOM QUARTILE';
+    sub.style.color       = '#22c55e';
+    sub.textContent       = 'OVERSOLD — BOUNCE EDGE ACTIVE';
+    desc.textContent      = 'Below 25% — Dr S bottom quartile. Next 5 day SPY returns historically ~4x normal. Mean reversion setup. In bull market = buy. In downtrend = wait for lows to stop expanding.';
+  } else if(val >= 50) {
+    card.style.background = '#0a1a2a';
+    card.style.border     = '1px solid #38bdf830';
+    label.style.color     = '#38bdf8';
+    label.textContent     = val + '%  UPPER HALF';
+    sub.style.color       = '#38bdf8';
+    sub.textContent       = 'HEALTHY — APPROACHING OVERBOUGHT';
+    desc.textContent      = 'Between 50% and 75%. Market healthy but not yet extreme. No special edge. Watch for push above 75% which reduces next 5 day returns significantly.';
+  } else {
+    card.style.background = '#1a0a02';
+    card.style.border     = '1px solid #f9731630';
+    label.style.color     = '#f97316';
+    label.textContent     = val + '%  LOWER HALF';
+    sub.style.color       = '#f97316';
+    sub.textContent       = 'WEAK — WATCHING FOR OVERSOLD';
+    desc.textContent      = 'Between 25% and 50%. Below average breadth but not yet in oversold quartile. No edge yet. Wait for drop below 25% for the bounce edge to activate.';
+  }
+
+  // Orange triangle warning — approaching exhaustion zone
+  let tri50 = document.getElementById('tri50D');
+  if(!tri50) {
+    tri50 = document.createElement('div');
+    tri50.id = 'tri50D';
+    tri50.style.cssText = 'margin-top:8px;padding:6px 10px;border-radius:4px;border:1px solid #f9731670;background:#1a0a0230;font-size:10px;font-weight:700;color:#f97316;display:none';
+    tri50.textContent = '⚠ 50D APPROACHING EXHAUSTION ZONE — Momentum short risk increasing';
+    card.appendChild(tri50);
+  }
+  tri50.style.display = (val <= 28 && val > 25) ? 'block' : 'none';
+}
+
+// ── BOLLINGER BAND BREADTH DISPLAY — Dr Steenbarger method ─────
+// From Dr S post Jan 19 2026:
+// When very few NYSE stocks close above upper Bollinger Band (lowest quartile)
+// next 30 days in SPY = 3x average returns
+// Lowest quartile threshold calculated from full history 2004-today
+function updateBollingerCard() {
+  const d = window.bbData;
+  if(!d || d.current === null) return;
+  const card  = document.getElementById('bollingerCard');
+  const label = document.getElementById('bollingerLabel');
+  const sub   = document.getElementById('bollingerSub');
+  const desc  = document.getElementById('bollingerDesc');
+  const qline = document.getElementById('bollingerQuartile');
+  const val   = d.current;
+  const q25   = d.q25;
+  const q75   = d.q75;
+
+  if(val <= q25) {
+    card.style.background = '#021408';
+    card.style.border     = '1px solid #22c55e50';
+    label.style.color     = '#22c55e';
+    label.textContent     = val + '%  LOWEST QUARTILE';
+    sub.style.color       = '#22c55e';
+    sub.textContent       = 'UPSIDE EDGE — NEXT 30 DAYS 3X NORMAL';
+    desc.textContent      = 'Very few NYSE stocks above upper Bollinger Band. Dr S research: next 30 days SPY historically 3x average returns of remainder of sample. Stocks pulled back from extremes. Buy weakness when confirmed.';
+  } else if(val >= q75) {
+    card.style.background = '#1a0a02';
+    card.style.border     = '1px solid #f9731650';
+    label.style.color     = '#f97316';
+    label.textContent     = val + '%  HIGHEST QUARTILE';
+    sub.style.color       = '#f97316';
+    sub.textContent       = 'OVERBOUGHT — SUBNORMAL RETURNS';
+    desc.textContent      = 'Many NYSE stocks above upper Bollinger Band. Market stretched to upside. Dr S research: next 30 days returns subnormal. Do not chase. Take profits.';
+  } else if(val <= (q25 + q75) / 2) {
+    card.style.background = '#0a0f1a';
+    card.style.border     = '1px solid #f9731630';
+    label.style.color     = '#f97316';
+    label.textContent     = val + '%  LOWER HALF';
+    sub.style.color       = '#f97316';
+    sub.textContent       = 'BELOW AVERAGE — WATCHING';
+    desc.textContent      = 'Below median but not yet lowest quartile. No strong edge yet. Watch for drop into lowest quartile for the 3x return setup.';
+  } else {
+    card.style.background = '#0a0f1a';
+    card.style.border     = '1px solid #38bdf830';
+    label.style.color     = '#38bdf8';
+    label.textContent     = val + '%  UPPER HALF';
+    sub.style.color       = '#38bdf8';
+    sub.textContent       = 'ABOVE AVERAGE — NEUTRAL';
+    desc.textContent      = 'Above median. Market healthy short term. No edge either direction from Bollinger Band breadth alone.';
+  }
+  qline.textContent = `Historical quartiles (2004–today): Q25 = ${q25}%  |  Q75 = ${q75}%  |  Today = ${val}%`;
+
+  // Orange triangle — BB confirmed, part of exhaustion stack
+  let triBB = document.getElementById('triBB');
+  if(!triBB) {
+    triBB = document.createElement('div');
+    triBB.id = 'triBB';
+    triBB.style.cssText = 'margin-top:8px;padding:6px 10px;border-radius:4px;border:1px solid #f9731670;background:#1a0a0230;font-size:10px;font-weight:700;color:#f97316;display:none';
+    triBB.textContent = '⚠ BB CONFIRMED — Exhaustion stack building. Check 50D + 5D levels.';
+    card.appendChild(triBB);
+  }
+  triBB.style.display = (val <= q25) ? 'block' : 'none';
+}
+
+// ── 5D BREADTH QUARTILE DISPLAY — Dr Steenbarger method ────────
+// 5D low + 100D also low = next 10 days +1.00% (Dr S context rule)
+// 5D low + 100D high = next 10 days only +0.38%
+function updateBreadth5Card() {
+  const d = window.breadth5Data;
+  if(!d || d.current === null) return;
+  const card  = document.getElementById('breadth5Card');
+  const label = document.getElementById('breadth5Label');
+  const sub   = document.getElementById('breadth5Sub');
+  const desc  = document.getElementById('breadth5Desc');
+  const val   = d.current;
+  const b100  = window.breadth100Data?.current ?? null;
+
+  if(val >= 75) {
+    card.style.background = '#1a0a02';
+    card.style.border     = '1px solid #f9731650';
+    label.style.color     = '#f97316';
+    label.textContent     = val + '%  TOP QUARTILE';
+    sub.style.color       = '#f97316';
+    sub.textContent       = 'OVERBOUGHT — NEXT 20 DAYS +1.31%';
+    desc.textContent      = 'Above 75% — Dr S top quartile. Next 20 days SPY +1.31%. Momentum confirmed — pullbacks are buying opportunities. Do not chase short term.';
+  } else if(val <= 25) {
+    card.style.background = '#021408';
+    card.style.border     = '1px solid #22c55e50';
+    label.style.color     = '#22c55e';
+    label.textContent     = val + '%  BOTTOM QUARTILE';
+    sub.style.color       = '#22c55e';
+    // Check 100D context — Dr S confirmed rule
+    if(b100 !== null && b100 <= 50) {
+      sub.textContent = 'OVERSOLD + 100D LOW — STRONGEST EDGE';
+      desc.textContent = 'Below 25% AND 100D also low. Dr S context rule: next 10 days SPY +1.00% — maximum bounce edge. Both short and medium term washed out. Buy weakness when lows stop expanding.';
+    } else if(b100 !== null && b100 > 50) {
+      sub.textContent = 'OVERSOLD — WEAK CONTEXT';
+      desc.textContent = 'Below 25% BUT 100D still high. Dr S context rule: next 10 days only +0.38% — just a short term dip in uptrend. Smaller size. Quick exit.';
+    } else {
+      sub.textContent = 'OVERSOLD — EDGE ACTIVE';
+      desc.textContent = 'Below 25% — Dr S bottom quartile. Next 20 days SPY +0.97%. Check 100D Q for context to determine edge strength.';
+    }
+  } else if(val >= 50) {
+    card.style.background = '#0a1a2a';
+    card.style.border     = '1px solid #38bdf830';
+    label.style.color     = '#38bdf8';
+    label.textContent     = val + '%  UPPER HALF';
+    sub.style.color       = '#38bdf8';
+    sub.textContent       = 'HEALTHY — NO EDGE';
+    desc.textContent      = 'Between 50-75%. Healthy market. No special edge from 5D breadth alone. Dr S: middle readings next 20 days only +0.48% — weakest of all zones.';
+  } else {
+    card.style.background = '#1a0a02';
+    card.style.border     = '1px solid #f9731630';
+    label.style.color     = '#f97316';
+    label.textContent     = val + '%  LOWER HALF';
+    sub.style.color       = '#f97316';
+    sub.textContent       = 'BELOW AVERAGE — WATCHING';
+    desc.textContent      = 'Between 25-50%. Below average but not yet oversold quartile. Dr S: middle readings only +0.48% next 20 days. Wait for drop below 25% for edge.';
+  }
+
+  // Orange triangle warning — approaching exhaustion zone
+  let tri5 = document.getElementById('tri5D');
+  if(!tri5) {
+    tri5 = document.createElement('div');
+    tri5.id = 'tri5D';
+    tri5.style.cssText = 'margin-top:8px;padding:6px 10px;border-radius:4px;border:1px solid #f9731670;background:#1a0a0230;font-size:10px;font-weight:700;color:#f97316;display:none';
+    tri5.textContent = '⚠ 5D APPROACHING EXHAUSTION ZONE — Short term selling extreme. Bounce risk rising.';
+    card.appendChild(tri5);
+  }
+  tri5.style.display = (val <= 28 && val > 25) ? 'block' : 'none';
+}
+
+// ── 100D BREADTH QUARTILE DISPLAY — Dr Steenbarger context rule ──
+// Used in combination with 5D breadth to determine edge strength
+// 5D low + 100D low = next 10 days +1.00%
+// 5D low + 100D high = next 10 days only +0.38%
+function updateBreadth100Card() {
+  const d = window.breadth100Data;
+  if(!d || d.current === null) return;
+  const card  = document.getElementById('breadth100Card');
+  const label = document.getElementById('breadth100Label');
+  const sub   = document.getElementById('breadth100Sub');
+  const desc  = document.getElementById('breadth100Desc');
+  const val   = d.current;
+
+  if(val >= 75) {
+    card.style.background = '#1a0a02';
+    card.style.border     = '1px solid #f9731650';
+    label.style.color     = '#f97316';
+    label.textContent     = val + '%  TOP QUARTILE';
+    sub.style.color       = '#f97316';
+    sub.textContent       = 'HIGH — WEAK OVERSOLD CONTEXT';
+    desc.textContent      = 'Above 75%. If 5D is also low: Dr S context rule = next 10 days only +0.38%. Just a short term dip. Medium term trend still intact. Small size, quick exit.';
+  } else if(val <= 25) {
+    card.style.background = '#021408';
+    card.style.border     = '1px solid #22c55e50';
+    label.style.color     = '#22c55e';
+    label.textContent     = val + '%  BOTTOM QUARTILE';
+    sub.style.color       = '#22c55e';
+    sub.textContent       = 'LOW — STRONGEST OVERSOLD CONTEXT';
+    desc.textContent      = 'Below 25%. If 5D is also low: Dr S context rule = next 10 days +1.00% — strongest bounce edge. Both short and medium term washed out. Maximum conviction setup.';
+  } else if(val >= 50) {
+    card.style.background = '#0a1a2a';
+    card.style.border     = '1px solid #38bdf830';
+    label.style.color     = '#38bdf8';
+    label.textContent     = val + '%  UPPER HALF';
+    sub.style.color       = '#38bdf8';
+    sub.textContent       = 'HEALTHY MEDIUM TERM';
+    desc.textContent      = 'Above 50%. Medium term trend intact. If 5D oversold = just a dip, not a major washout. Dr S: expect +0.38% over 10 days not +1.00%.';
+  } else {
+    card.style.background = '#1a0a02';
+    card.style.border     = '1px solid #f9731630';
+    label.style.color     = '#f97316';
+    label.textContent     = val + '%  LOWER HALF';
+    sub.style.color       = '#f97316';
+    sub.textContent       = 'WEAKENING MEDIUM TERM';
+    desc.textContent      = 'Between 25-50%. Medium term weakening. Approaching context for stronger oversold edge. Watch for drop below 25% to combine with 5D for maximum edge.';
+  }
+}
+
+// ── 200D BREADTH QUARTILE DISPLAY — Dr Steenbarger method ────────
+// Bottom quartile <25% = next 10 days SPY +1.32%
+// Top quartile >75% = next 10 days SPY -0.04%
+function updateBreadth200Card() {
+  const d = window.breadth200Data;
+  if(!d || d.current === null) return;
+  const card  = document.getElementById('breadth200Card');
+  const label = document.getElementById('breadth200Label');
+  const sub   = document.getElementById('breadth200Sub');
+  const desc  = document.getElementById('breadth200Desc');
+  const val   = d.current;
+
+  if(val >= 75) {
+    card.style.background = '#1a0a02';
+    card.style.border     = '1px solid #f9731650';
+    label.style.color     = '#f97316';
+    label.textContent     = val + '%  TOP QUARTILE';
+    sub.style.color       = '#f97316';
+    sub.textContent       = 'OVERBOUGHT — NEXT 10 DAYS -0.04%';
+    desc.textContent      = 'Above 75% — Dr S top quartile. Next 10 days SPY historically -0.04%. Do not chase. Bull market extended. Take profits. Wait for pullback.';
+  } else if(val <= 25) {
+    card.style.background = '#021408';
+    card.style.border     = '1px solid #22c55e50';
+    label.style.color     = '#22c55e';
+    label.textContent     = val + '%  BOTTOM QUARTILE';
+    sub.style.color       = '#22c55e';
+    sub.textContent       = 'OVERSOLD — NEXT 10 DAYS +1.32%';
+    desc.textContent      = 'Below 25% — Dr S bottom quartile. Next 10 days SPY historically +1.32% — strongest long term bounce edge. Structural oversold. High conviction setup when combined with 50D and BB signals.';
+  } else if(val >= 50) {
+    card.style.background = '#0a1a2a';
+    card.style.border     = '1px solid #38bdf830';
+    label.style.color     = '#38bdf8';
+    label.textContent     = val + '%  UPPER HALF';
+    sub.style.color       = '#38bdf8';
+    sub.textContent       = 'HEALTHY LONG TERM';
+    desc.textContent      = 'Above 50%. Long term market structure healthy. Bull market intact. No special edge from 200D breadth alone.';
+  } else {
+    card.style.background = '#1a0a02';
+    card.style.border     = '1px solid #f9731630';
+    label.style.color     = '#f97316';
+    label.textContent     = val + '%  LOWER HALF';
+    sub.style.color       = '#f97316';
+    sub.textContent       = 'STRUCTURAL WEAKNESS';
+    desc.textContent      = 'Between 25-50%. Long term breadth weakening. Watch for drop below 25% for the +1.32% edge to activate. Approaching bear market territory.';
+  }
+}
+
+// ── PCRE EQUITY PUT/CALL QUARTILE — Dr Steenbarger sentiment rule ──
+// 10-year data quartiles (2016-2026, n=2514):
+// Bottom quartile ≤ 0.53 → next 10 days SPY +0.25% (greed/complacent, subnormal)
+// Top quartile    ≥ 0.68 → next 10 days SPY +0.96% (fear/panic, edge active)
+// Middle 50%     0.53-0.68 → no edge
+function updatePcreCard() {
+  const card  = document.getElementById('pcreCard');
+  const label = document.getElementById('pcreLabel');
+  const sub   = document.getElementById('pcreSub');
+  const desc  = document.getElementById('pcreDesc');
+  const input = document.getElementById('pcreInput');
+  const val   = parseFloat(input.value);
+  if(isNaN(val)) return;
+  window.pcreValue = val;
+
+  // Use live-calculated quartiles if available, fall back to defaults
+  const q25 = window.pcreQ25 ?? 0.53;
+  const q75 = window.pcreQ75 ?? 0.68;
+  const srcLabel = window.pcreData ? 'live' : 'fallback';
+
+  // Refresh threshold display at bottom of card
+  const q25L = document.getElementById('pcreQ25Label');
+  const q75L = document.getElementById('pcreQ75Label');
+  const midL = document.getElementById('pcreMidLabel');
+  const srcL = document.getElementById('pcreThreshSource');
+  if(q25L) q25L.textContent = '≤ ' + q25.toFixed(2);
+  if(q75L) q75L.textContent = '≥ ' + q75.toFixed(2);
+  if(midL) midL.textContent = q25.toFixed(2) + ' – ' + q75.toFixed(2);
+  if(srcL && window.pcreData) srcL.textContent = '(LIVE, n=' + window.pcreData.n + ')';
+
+  if(val >= q75) {
+    card.style.background = '#021408';
+    card.style.border     = '1px solid #22c55e50';
+    label.style.color     = '#22c55e';
+    label.textContent     = val.toFixed(2) + '  TOP QUARTILE';
+    sub.style.color       = '#22c55e';
+    sub.textContent       = 'FEAR — NEXT 10 DAYS SPY +0.96%';
+    desc.textContent      = 'Today\'s $PCRE = ' + val.toFixed(2) + ' → TOP QUARTILE (≥ ' + q75.toFixed(2) + '). Traders heavily buying puts on individual stocks — fear/panic sentiment. Dr S: next 10 days SPY historically +0.96%. Contrarian bullish edge active. Crowd is scared, bounce likely.';
+  } else if(val <= q25) {
+    card.style.background = '#1a0a02';
+    card.style.border     = '1px solid #f9731650';
+    label.style.color     = '#f97316';
+    label.textContent     = val.toFixed(2) + '  BOTTOM QUARTILE';
+    sub.style.color       = '#f97316';
+    sub.textContent       = 'GREED — NEXT 10 DAYS SPY +0.25%';
+    desc.textContent      = 'Today\'s $PCRE = ' + val.toFixed(2) + ' → BOTTOM QUARTILE (≤ ' + q25.toFixed(2) + '). Traders heavily buying calls — greed/complacent sentiment. Dr S: next 10 days SPY historically only +0.25% (subnormal). Crowd complacent, no bullish edge from sentiment here.';
+  } else {
+    card.style.background = '#0a1a2a';
+    card.style.border     = '1px solid #38bdf830';
+    label.style.color     = '#38bdf8';
+    label.textContent     = val.toFixed(2) + '  MIDDLE';
+    sub.style.color       = '#38bdf8';
+    sub.textContent       = 'NO EDGE — MIDDLE 50%';
+    desc.textContent      = 'Today\'s $PCRE = ' + val.toFixed(2) + ' → MIDDLE zone (' + q25.toFixed(2) + ' – ' + q75.toFixed(2) + '). Sentiment neither extreme greed nor extreme fear. No Dr S edge active from P/C alone. Watch for move into either quartile.';
+  }
+
+  // Refresh signal alignment card (uses PCRE value too)
+  if(typeof updateAlignmentCard === 'function') updateAlignmentCard();
+  // Refresh regime (PCRE feeds into bear-stack modifier)
+  if(typeof update === 'function' && window.maData) update();
+}
+
+// Wire up input handlers once DOM is ready
+(function setupPcreHandlers(){
+  function init() {
+    const input = document.getElementById('pcreInput');
+    const btn   = document.getElementById('pcreBtn');
+    if(!input || !btn) { setTimeout(init, 100); return; }
+    btn.addEventListener('click', updatePcreCard);
+    input.addEventListener('keydown', e => { if(e.key === 'Enter') updatePcreCard(); });
+    input.addEventListener('change', updatePcreCard);
+    updatePcreCard();
+  }
+  if(document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+
+// ── SPY 5-PERIOD RSI — Dr Steenbarger overbought/oversold rule ─
+// Thresholds:
+//   RSI ≤ 30 → oversold, contrarian BULL signal (bounce likely)
+//   RSI ≥ 70 → overbought, contrarian BEAR signal (extended)
+//   30-70    → neutral, no edge
+// Manual entry — user updates ~30 min after open for stable intraday reading
+window.rsiValue = null;
+
+function updateRsiCard() {
+  const card  = document.getElementById('rsiCard');
+  const label = document.getElementById('rsiLabel');
+  const sub   = document.getElementById('rsiSub');
+  const desc  = document.getElementById('rsiDesc');
+  const input = document.getElementById('rsiInput');
+  const val   = parseFloat(input.value);
+  if(isNaN(val)) return;
+  window.rsiValue = val;
+
+  if(val >= 70) {
+    card.style.background = '#1a0a02';
+    card.style.border     = '1px solid #f9731650';
+    label.style.color     = '#f97316';
+    label.textContent     = val.toFixed(1) + '  OVERBOUGHT';
+    sub.style.color       = '#f97316';
+    sub.textContent       = 'EXTENDED — MEAN REVERSION RISK';
+    desc.textContent      = 'SPY 5-period RSI = ' + val.toFixed(1) + ' → OVERBOUGHT zone (≥ 70). Price is stretched short-term. Dr S contrarian read: extended markets pull back. Bear signal for stacking. Do not chase longs at these levels.';
+  } else if(val <= 30) {
+    card.style.background = '#021408';
+    card.style.border     = '1px solid #22c55e50';
+    label.style.color     = '#22c55e';
+    label.textContent     = val.toFixed(1) + '  OVERSOLD';
+    sub.style.color       = '#22c55e';
+    sub.textContent       = 'STRETCHED DOWN — BOUNCE LIKELY';
+    desc.textContent      = 'SPY 5-period RSI = ' + val.toFixed(1) + ' → OVERSOLD zone (≤ 30). Price stretched short-term down. Dr S contrarian read: oversold markets bounce. Bull signal for stacking. Watch for failed breakdowns / trapped sellers.';
+  } else {
+    card.style.background = '#0a1a2a';
+    card.style.border     = '1px solid #38bdf830';
+    label.style.color     = '#38bdf8';
+    label.textContent     = val.toFixed(1) + '  NEUTRAL';
+    sub.style.color       = '#38bdf8';
+    sub.textContent       = 'NO EDGE — MIDDLE ZONE';
+    desc.textContent      = 'SPY 5-period RSI = ' + val.toFixed(1) + ' → NEUTRAL zone (30 – 70). No short-term extreme. No Dr S edge active from RSI alone. Watch for move into either extreme zone.';
+  }
+
+  // Refresh signal alignment card (uses RSI value too)
+  if(typeof updateAlignmentCard === 'function') updateAlignmentCard();
+  // Refresh regime (RSI feeds into bear-stack modifier)
+  if(typeof update === 'function' && window.maData) update();
+}
+
+// Wire up input handlers once DOM is ready
+(function setupRsiHandlers(){
+  function init() {
+    const input = document.getElementById('rsiInput');
+    const btn   = document.getElementById('rsiBtn');
+    if(!input || !btn) { setTimeout(init, 100); return; }
+    btn.addEventListener('click', updateRsiCard);
+    input.addEventListener('keydown', e => { if(e.key === 'Enter') updateRsiCard(); });
+    input.addEventListener('change', updateRsiCard);
+    updateRsiCard();
+  }
+  if(document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+
+// ── XLE vs SPY BREADTH ROTATION — Dr Steenbarger Jan 16 2026 rule ──
+// Spread = XLE_20D breadth - SPY_20D_proxy (avg of all 11 sector 20D readings)
+// Top half of distribution since 2020 → subnormal SPY next 10/20/30d
+// Top 10% → negative SPY next 3-5d (extreme energy leadership)
+// Bottom half → no rotation warning
+function updateXleRotCard() {
+  const data = window.xleRotation;
+  const card  = document.getElementById('xleRotCard');
+  const label = document.getElementById('xleRotLabel');
+  const sub   = document.getElementById('xleRotSub');
+  const desc  = document.getElementById('xleRotDesc');
+  if(!card || !data) return;
+
+  const val = data.current;
+  const q50 = data.q50;
+  const q90 = data.q90;
+
+  // Refresh thresholds in footer
+  const botL = document.getElementById('xleRotBotLabel');
+  const topL = document.getElementById('xleRotTopLabel');
+  const extL = document.getElementById('xleRotExtLabel');
+  const srcL = document.getElementById('xleRotSource');
+  if(botL) botL.textContent = '< ' + q50.toFixed(1);
+  if(topL) topL.textContent = '≥ ' + q50.toFixed(1);
+  if(extL) extL.textContent = '≥ ' + q90.toFixed(1);
+  if(srcL) { srcL.textContent = '(LIVE, n=' + data.n + ')'; srcL.style.color = '#22c55e'; }
+
+  const sign = val >= 0 ? '+' : '';
+  if(val >= q90) {
+    card.style.background = '#1a0408';
+    card.style.border     = '1px solid #ef444450';
+    label.style.color     = '#ef4444';
+    label.textContent     = sign + val.toFixed(1) + '  EXTREME';
+    sub.style.color       = '#ef4444';
+    sub.textContent       = 'ENERGY DOMINATING — SPY NEGATIVE NEXT 3-5D';
+    desc.textContent      = 'XLE breadth (' + data.xleCurrent + '%) minus SPY proxy (' + data.spyCurrent + '%) = ' + sign + val.toFixed(1) + ' → TOP 10% of distribution since 2020. Dr S: extreme energy leadership signals oil/inflation headwind. SPY historically negative next 3-5 days. Do not chase longs. Watch for rollover.';
+  } else if(val >= q50) {
+    card.style.background = '#1a0a02';
+    card.style.border     = '1px solid #f9731650';
+    label.style.color     = '#f97316';
+    label.textContent     = sign + val.toFixed(1) + '  TOP HALF';
+    sub.style.color       = '#f97316';
+    sub.textContent       = 'ENERGY LEADING — SPY SUBNORMAL FORWARD';
+    desc.textContent      = 'XLE breadth (' + data.xleCurrent + '%) minus SPY proxy (' + data.spyCurrent + '%) = ' + sign + val.toFixed(1) + ' → top half of distribution since 2020. Dr S: when energy leads the market, SPY forward returns (10/20/30d) are subnormal. Oil/inflation pressure building. Caution on longs.';
+  } else {
+    card.style.background = '#021408';
+    card.style.border     = '1px solid #22c55e30';
+    label.style.color     = '#22c55e';
+    label.textContent     = sign + val.toFixed(1) + '  BOTTOM HALF';
+    sub.style.color       = '#22c55e';
+    sub.textContent       = 'NO ROTATION WARNING';
+    desc.textContent      = 'XLE breadth (' + data.xleCurrent + '%) minus SPY proxy (' + data.spyCurrent + '%) = ' + sign + val.toFixed(1) + ' → bottom half of distribution since 2020. Dr S: energy is NOT leading the market. No rotation-based headwind for SPY from this signal.';
+  }
+
+  // Refresh alignment (rotation signal feeds into stacking)
+  if(typeof updateAlignmentCard === 'function') updateAlignmentCard();
+}
+
+// ── TODAY'S STACK — compact live summary inside regime box ─────
+// Shows 2-3 lines: active signals with Dr S context + 1 action line.
+// Appears only when there's at least one meaningful signal to report.
+function updateTodayStack() {
+  const box      = document.getElementById('todayStackBox');
+  const linesEl  = document.getElementById('todayStackLines');
+  const actionEl = document.getElementById('todayStackAction');
+  if(!box || !linesEl || !actionEl) return;
+
+  const b50  = window.breadth50Data?.current ?? null;
+  const b200 = window.breadth200Data?.current ?? null;
+  const bb   = window.bbData?.current ?? null;
+  const bbQ25= window.bbData?.q25 ?? null;
+  const bbQ75= window.bbData?.q75 ?? null;
+  const pcre = window.pcreValue ?? null;
+  const pcQ25= window.pcreQ25 ?? 0.53;
+  const pcQ75= window.pcreQ75 ?? 0.68;
+  const rsi  = window.rsiValue ?? null;
+  const sd20 = window.maData?.find(x=>x.ma===20)?.sd ?? null;
+
+  const lines = [];
+  let bulls = 0, bears = 0;
+
+  // σ divergence (always shown if available, Dr S backbone signal)
+  if(sd20 !== null) {
+    if(sd20 >= 2.0) {
+      lines.push({c:'#ef4444', t:'σ ' + sd20.toFixed(2) + ' DANGER — sectors diverging, bull coming apart (Dr S Mar 9)'});
+      bears++;
+    } else if(sd20 >= 1.5) {
+      lines.push({c:'#f97316', t:'σ ' + sd20.toFixed(2) + ' WARNING — hidden weakness (Dr S Mar 9)'});
+    } else if(sd20 < 0.5) {
+      lines.push({c:'#22c55e', t:'σ ' + sd20.toFixed(2) + ' CALM — broad participation'});
+    }
+  }
+
+  // 50D breadth — primary Dr S edge
+  if(b50 !== null) {
+    if(b50 <= 25) {
+      lines.push({c:'#22c55e', t:'50D ' + b50 + '% bottom Q — bounce edge ~4x normal next 5d (Dr S Jan 21)'});
+      bulls++;
+    } else if(b50 >= 75) {
+      lines.push({c:'#ef4444', t:'50D ' + b50 + '% top Q — next 5d only +0.11% subnormal (Dr S Jan 21)'});
+      bears++;
+    } else if(b50 > 50) {
+      lines.push({c:'#aaccee', t:'50D ' + b50 + '% upper half — bull structure, pullbacks buyable (Dr S Jan 21)'});
+    } else {
+      lines.push({c:'#aaccee', t:'50D ' + b50 + '% lower half — watching'});
+    }
+  }
+
+  // 200D breadth — structural edge
+  if(b200 !== null) {
+    if(b200 <= 25) {
+      lines.push({c:'#22c55e', t:'200D ' + b200 + '% bottom Q — next 10d SPY +1.32% (Dr S)'});
+      bulls++;
+    } else if(b200 >= 75) {
+      lines.push({c:'#ef4444', t:'200D ' + b200 + '% top Q — next 10d SPY -0.04% (Dr S)'});
+      bears++;
+    }
+  }
+
+  // BB Breadth — Dr S Jan 19
+  if(bb !== null && bbQ25 !== null) {
+    if(bb <= bbQ25) {
+      lines.push({c:'#22c55e', t:'BB breadth ' + bb + '% lowest Q — next 30d 3x normal (Dr S Jan 19)'});
+      bulls++;
+    } else if(bbQ75 !== null && bb >= bbQ75) {
+      lines.push({c:'#ef4444', t:'BB breadth ' + bb + '% highest Q — subnormal next 30d (Dr S Jan 19)'});
+      bears++;
+    }
+  }
+
+  // PCRE sentiment — contrarian
+  if(pcre !== null) {
+    if(pcre >= pcQ75) {
+      lines.push({c:'#22c55e', t:'$PCRE ' + pcre.toFixed(2) + ' top Q — fear, next 10d SPY +0.96% (Dr S)'});
+      bulls++;
+    } else if(pcre <= pcQ25) {
+      lines.push({c:'#ef4444', t:'$PCRE ' + pcre.toFixed(2) + ' bottom Q — greed, only +0.25% next 10d (Dr S)'});
+      bears++;
+    }
+  }
+
+  // RSI SPY 5-period — extreme
+  if(rsi !== null) {
+    if(rsi >= 70) {
+      lines.push({c:'#ef4444', t:'SPY RSI(5) ' + rsi.toFixed(1) + ' overbought — mean reversion risk'});
+      bears++;
+    } else if(rsi <= 30) {
+      lines.push({c:'#22c55e', t:'SPY RSI(5) ' + rsi.toFixed(1) + ' oversold — bounce likely'});
+      bulls++;
+    }
+  }
+
+  // XLE rotation — Dr S Jan 16
+  const xleR = window.xleRotation;
+  if(xleR && xleR.current >= xleR.q90) {
+    lines.push({c:'#ef4444', t:'XLE vs SPY extreme — energy leading, SPY negative next 3-5d (Dr S Jan 16)'});
+    bears++;
+  } else if(xleR && xleR.current >= xleR.q50) {
+    lines.push({c:'#f97316', t:'XLE vs SPY top half — energy leading, SPY subnormal forward (Dr S Jan 16)'});
+    bears++;
+  }
+
+  if(lines.length === 0) {
+    box.style.display = 'none';
+    return;
+  }
+
+  // Action line — Dr S combined read
+  let action, actionColor, borderColor;
+  if(bears >= 3 && bulls === 0) {
+    action = 'DR S ACTION: ' + bears + ' bears stacked. Same-direction stack = high conviction. Do not chase. Size down. Wait for pullback.';
+    actionColor = '#ef4444';
+    borderColor = '#ef4444';
+  } else if(bulls >= 3 && bears === 0) {
+    action = 'DR S ACTION: ' + bulls + ' bulls stacked. High conviction reversal long. Buy weakness when lows stop expanding.';
+    actionColor = '#22c55e';
+    borderColor = '#22c55e';
+  } else if(bears >= 2 && bulls === 0) {
+    action = 'DR S ACTION: ' + bears + ' bears stacked — extended warning. Reduce size on longs. Take profits.';
+    actionColor = '#f97316';
+    borderColor = '#f97316';
+  } else if(bulls >= 2 && bears === 0) {
+    action = 'DR S ACTION: ' + bulls + ' bulls stacked — moderate long edge. Scale in on weakness.';
+    actionColor = '#22c55e';
+    borderColor = '#22c55e';
+  } else if(bulls > 0 && bears > 0) {
+    action = 'DR S ACTION: conflicting (' + bulls + ' bull / ' + bears + ' bear) — no edge, wait.';
+    actionColor = '#eab308';
+    borderColor = '#eab308';
+  } else if(bears === 1) {
+    action = 'DR S ACTION: 1 bear signal — caution but not decisive.';
+    actionColor = '#aaccee';
+    borderColor = '#6b7a8f';
+  } else if(bulls === 1) {
+    action = 'DR S ACTION: 1 bull signal — wait for confirmation.';
+    actionColor = '#aaccee';
+    borderColor = '#6b7a8f';
+  } else {
+    action = 'DR S ACTION: no extreme signals — neutral environment.';
+    actionColor = '#aaccee';
+    borderColor = '#6b7a8f';
+  }
+
+  linesEl.innerHTML = lines.map(l => `<div style="color:${l.c};margin-bottom:2px">• ${l.t}</div>`).join('');
+  actionEl.style.color = actionColor;
+  actionEl.textContent = action;
+  box.style.borderLeftColor = borderColor;
+  box.style.display = 'block';
+}
+
+// ── SIGNAL ALIGNMENT — Dr S stacking logic ─────────────────────
+// Two concepts from Dr S when signals stack:
+//   1. Same-direction stack → high conviction setup
+//   2. Conflicting stack → wait, no edge
+// Counts bullish vs bearish signals across all Dr S edges.
+function updateAlignmentCard() {
+  const score  = document.getElementById('alignmentScore');
+  const sigs   = document.getElementById('alignmentSignals');
+  const title  = document.getElementById('alignmentTitle');
+
+  const b50    = window.breadth50Data?.current ?? null;
+  const b100   = window.breadth100Data?.current ?? null;
+  const b200   = window.breadth200Data?.current ?? null;
+  const b5     = window.breadth5Data?.current  ?? null;
+  const bb     = window.bbData?.current ?? null;
+  const bbQ25  = window.bbData?.q25 ?? null;
+  const bbQ75  = window.bbData?.q75 ?? null;
+  const pcre   = window.pcreValue ?? null;
+  const pcQ25  = window.pcreQ25 ?? 0.53;
+  const pcQ75  = window.pcreQ75 ?? 0.68;
+  const rsi    = window.rsiValue ?? null;
+
+  let bullCount = 0;
+  let bearCount = 0;
+  let lines = [];
+
+  // 50D BREADTH — primary Dr S edge
+  if(b50 !== null) {
+    if(b50 <= 25) {
+      bullCount++;
+      lines.push({d:'bull', t:'✓ 50D BREADTH ' + b50 + '% — BOTTOM Q — bounce edge ~4x normal next 5d'});
+    } else if(b50 >= 75) {
+      bearCount++;
+      lines.push({d:'bear', t:'✗ 50D BREADTH ' + b50 + '% — TOP Q — next 5d subnormal +0.11%'});
+    } else if(b50 > 50) {
+      lines.push({d:'neutral', t:'○ 50D BREADTH ' + b50 + '% — bull structure (buy pullbacks on 50d horizon)'});
+    } else {
+      lines.push({d:'neutral', t:'○ 50D BREADTH ' + b50 + '% — middle zone'});
+    }
+  }
+
+  // 200D BREADTH — structural edge
+  if(b200 !== null) {
+    if(b200 <= 25) {
+      bullCount++;
+      lines.push({d:'bull', t:'✓ 200D BREADTH ' + b200 + '% — BOTTOM Q — next 10d SPY +1.32%'});
+    } else if(b200 >= 75) {
+      bearCount++;
+      lines.push({d:'bear', t:'✗ 200D BREADTH ' + b200 + '% — TOP Q — next 10d SPY -0.04%'});
+    } else {
+      lines.push({d:'neutral', t:'○ 200D BREADTH ' + b200 + '% — middle zone'});
+    }
+  }
+
+  // 5D + 100D context rule
+  if(b5 !== null) {
+    if(b5 <= 25 && b100 !== null && b100 <= 50) {
+      bullCount++;
+      lines.push({d:'bull', t:'✓ 5D+100D CONTEXT — both low — next 10d +1.00% max edge'});
+    } else if(b5 <= 25 && b100 !== null && b100 > 50) {
+      lines.push({d:'neutral', t:'⚠ 5D+100D CONTEXT — 5D low, 100D high — just a dip (+0.38%)'});
+    } else if(b5 <= 25) {
+      bullCount++;
+      lines.push({d:'bull', t:'✓ 5D QUARTILE ' + b5 + '% — BOTTOM Q — oversold edge'});
+    }
+  }
+
+  // BOLLINGER BAND BREADTH
+  if(bb !== null && bbQ25 !== null) {
+    if(bb <= bbQ25) {
+      bullCount++;
+      lines.push({d:'bull', t:'✓ BB BREADTH ' + bb + '% — LOWEST Q — next 30d SPY 3x normal'});
+    } else if(bbQ75 !== null && bb >= bbQ75) {
+      bearCount++;
+      lines.push({d:'bear', t:'✗ BB BREADTH ' + bb + '% — HIGHEST Q — overbought, subnormal next 30d'});
+    } else {
+      lines.push({d:'neutral', t:'○ BB BREADTH ' + bb + '% — middle, no edge'});
+    }
+  }
+
+  // PCRE — Dr S sentiment edge (contrarian)
+  if(pcre !== null) {
+    if(pcre >= pcQ75) {
+      bullCount++;
+      lines.push({d:'bull', t:'✓ $PCRE ' + pcre.toFixed(2) + ' — TOP Q — fear, next 10d SPY +0.96%'});
+    } else if(pcre <= pcQ25) {
+      bearCount++;
+      lines.push({d:'bear', t:'✗ $PCRE ' + pcre.toFixed(2) + ' — BOTTOM Q — greed, next 10d only +0.25%'});
+    } else {
+      lines.push({d:'neutral', t:'○ $PCRE ' + pcre.toFixed(2) + ' — middle zone, no sentiment edge'});
+    }
+  }
+
+  // RSI SPY 5-period — Dr S overbought/oversold rule (contrarian)
+  if(rsi !== null) {
+    if(rsi >= 70) {
+      bearCount++;
+      lines.push({d:'bear', t:'✗ SPY RSI(5) ' + rsi.toFixed(1) + ' — OVERBOUGHT — extended, mean reversion risk'});
+    } else if(rsi <= 30) {
+      bullCount++;
+      lines.push({d:'bull', t:'✓ SPY RSI(5) ' + rsi.toFixed(1) + ' — OVERSOLD — bounce likely, trapped sellers'});
+    } else {
+      lines.push({d:'neutral', t:'○ SPY RSI(5) ' + rsi.toFixed(1) + ' — neutral zone, no edge'});
+    }
+  }
+
+  // XLE vs SPY breadth rotation — Dr S Jan 16 2026 rule
+  const xleRot = window.xleRotation;
+  if(xleRot) {
+    const sign = xleRot.current >= 0 ? '+' : '';
+    if(xleRot.current >= xleRot.q90) {
+      bearCount++;
+      lines.push({d:'bear', t:'✗ XLE vs SPY ' + sign + xleRot.current.toFixed(1) + ' — EXTREME energy lead → SPY negative next 3-5d'});
+    } else if(xleRot.current >= xleRot.q50) {
+      bearCount++;
+      lines.push({d:'bear', t:'✗ XLE vs SPY ' + sign + xleRot.current.toFixed(1) + ' — energy leading → SPY subnormal forward'});
+    } else {
+      lines.push({d:'neutral', t:'○ XLE vs SPY ' + sign + xleRot.current.toFixed(1) + ' — no rotation warning'});
+    }
+  }
+
+  title.style.display = 'block';
+  score.style.display = 'block';
+  sigs.style.display  = 'block';
+  const explainer = document.getElementById('alignmentExplainer');
+  if(explainer) explainer.style.display = 'block';
+
+  // Dr S stacking verdict
+  let scoreText, scoreColor;
+  if(bullCount >= 3 && bearCount === 0) {
+    scoreColor = '#22c55e';
+    scoreText = bullCount + ' BULL SIGNALS STACKED — HIGH CONVICTION REVERSAL LONG';
+  } else if(bearCount >= 3 && bullCount === 0) {
+    scoreColor = '#ef4444';
+    scoreText = bearCount + ' BEAR SIGNALS STACKED — HIGH CONVICTION DO NOT CHASE';
+  } else if(bullCount >= 2 && bearCount === 0) {
+    scoreColor = '#22c55e';
+    scoreText = bullCount + ' BULL SIGNALS — MODERATE LONG EDGE';
+  } else if(bearCount >= 2 && bullCount === 0) {
+    scoreColor = '#f97316';
+    scoreText = bearCount + ' BEAR SIGNALS — MODERATE EXTENDED WARNING';
+  } else if(bullCount > 0 && bearCount > 0) {
+    scoreColor = '#eab308';
+    scoreText = 'CONFLICTING — ' + bullCount + ' BULL / ' + bearCount + ' BEAR — NO EDGE, WAIT';
+  } else if(bullCount === 1) {
+    scoreColor = '#ffffff';
+    scoreText = '1 BULL SIGNAL — WAIT FOR CONFIRMATION';
+  } else if(bearCount === 1) {
+    scoreColor = '#ffffff';
+    scoreText = '1 BEAR SIGNAL — CAUTION BUT NOT DECISIVE';
+  } else {
+    scoreColor = '#ffffff';
+    scoreText = 'NO SIGNALS ACTIVE — WAIT';
+  }
+  score.style.color = scoreColor;
+  score.textContent = scoreText;
+
+  sigs.innerHTML = lines.map(l => {
+    const color = l.d === 'bull' ? '#22c55e' : l.d === 'bear' ? '#ef4444' : '#aaccee';
+    return `<div style="color:${color}">${l.t}</div>`;
+  }).join('');
+
+  // Sync the regime-box TODAY'S STACK summary
+  if(typeof updateTodayStack === 'function') updateTodayStack();
+}
+
+// ── P/C EQUITY RATIO QUARTILE — Dr Steenbarger sentiment rule ──
+// Data: 2514 obs (2016-2026). Q25=0.53, Q75=0.68. Mean 0.61.
+// Bottom Q (<=0.53) = greed/complacent → next 10d SPY +0.25% subnormal
+// Top Q    (>=0.68) = fear/panic       → next 10d SPY +0.96% edge active
+window.pcreQ25 = 0.53;
+window.pcreQ75 = 0.68;
+window.pcreValue = 0.45;
+
+update();
+
+(async () => {
+  const realData = await loadRealData();
+  if(realData) {
+    maData = realData;
+    update();
+  }
+})();
+
+// Auto-fetch at US market open (09:32 ET) and every 15 min after
+(function scheduleAutoFetch() {
+  async function autoRefresh() {
+    const realData = await loadRealData();
+    if(realData) { maData = realData; update(); }
+  }
+
+  function msUntilNext() {
+    const now = new Date();
+    const isDST = (() => {
+      const jan = new Date(now.getFullYear(), 0, 1).getTimezoneOffset();
+      const jul = new Date(now.getFullYear(), 6, 1).getTimezoneOffset();
+      return now.getTimezoneOffset() < Math.max(jan, jul);
+    })();
+    const etNow = new Date(now.getTime() + (now.getTimezoneOffset() + (isDST ? -4 : -5) * 60) * 60000);
+    const h = etNow.getHours(), m = etNow.getMinutes();
+    const totalMin = h * 60 + m;
+    const openMin  = 9 * 60 + 32;
+    const closeMin = 16 * 60;
+    if(totalMin < openMin || totalMin >= closeMin) return 60000;
+    const sinceOpen = totalMin - openMin;
+    const msIntoInterval = ((sinceOpen % 15) * 60 + etNow.getSeconds()) * 1000 + etNow.getMilliseconds();
+    return 15 * 60 * 1000 - msIntoInterval;
+  }
+
+  function tick() {
+    const ms = msUntilNext();
+    setTimeout(async () => {
+      const now = new Date();
+      const isDST = (() => {
+        const jan = new Date(now.getFullYear(), 0, 1).getTimezoneOffset();
+        const jul = new Date(now.getFullYear(), 6, 1).getTimezoneOffset();
+        return now.getTimezoneOffset() < Math.max(jan, jul);
+      })();
+      const etNow = new Date(now.getTime() + (now.getTimezoneOffset() + (isDST ? -4 : -5) * 60) * 60000);
+      const h = etNow.getHours(), m = etNow.getMinutes();
+      const totalMin = h * 60 + m;
+      if(totalMin >= 9 * 60 + 32 && totalMin < 16 * 60) {
+        await autoRefresh();
+      }
+      tick();
+    }, ms);
+  }
+
+  tick();
+})();
+</script>
+</body>
+</html>
